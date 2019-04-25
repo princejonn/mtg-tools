@@ -1,9 +1,13 @@
 # MTG Tools
 
-## commander
+## finding cards for a commander
 
-`node commander "{commanderName}"`
+`npm run commander "{commanderName}"`
 
-## popular
+## finding popular cards from links
 
-`node popular {fileName} [...links]`
+`npm run popular {fileName} [...links]`
+
+## improve current deck
+
+`npm run improve {tappedOutLink}`

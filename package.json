@@ -2,9 +2,10 @@
   "name": "mtg-tools",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "commander": "node scripts/commander",
+    "improve": "node scripts/improve",
+    "popular": "node scripts/popular"
   },
   "keywords": [],
   "author": "",
