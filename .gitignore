@@ -1,35 +1,30 @@
-# General
-.DS_Store
-.AppleDouble
-.LSOverride
+# Generated
+/coverage
+/dist
+/lib
+/node_modules
+/reports
+/jspm_packages
 
-# Icon must end with two \r
-Icon
-
-# folders
-node_modules
-.idea
-
-# Text files
-/results/*
-config.yml
+# Environment
 .env
 
-# Thumbnails
-._*
+# Logs
+logs
+*.log
+npm-debug.log*
 
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
+# IDE
+*.sublime-*
+.vscode
+jsconfig.json
+/.idea
 
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
+# Other
+lib-cov
+pids
+.DS_Store
+.npm
+.node_repl_history
+*.pid
+*.seed

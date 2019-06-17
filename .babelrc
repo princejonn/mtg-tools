@@ -1,0 +1,55 @@
+{
+  "env": {
+    "development": {
+      "presets": [
+        [
+          "@babel/preset-env", {
+          "targets": {
+            "node": "current"
+          }
+        }
+        ]
+      ],
+      "plugins": [
+        "add-module-exports",
+        "@babel/plugin-transform-spread",
+        [
+          "module-resolver",
+          {
+            "root": ["./src"],
+            "alias": {
+              "#": "./"
+            }
+          }
+        ]
+      ]
+    },
+    "production": {
+      "presets": [
+        [
+          "@babel/preset-env", {
+          "targets": {
+            "node": "current"
+          }
+        }
+        ],
+        [
+          "minify"
+        ]
+      ],
+      "plugins": [
+        "add-module-exports",
+        "@babel/plugin-transform-spread",
+        [
+          "module-resolver",
+          {
+            "root": ["./src"],
+            "alias": {
+              "#": "./"
+            }
+          }
+        ]
+      ]
+    }
+  }
+}
