@@ -66,8 +66,8 @@ export default class TappedOut extends BasePage {
 
       const card = new Card(name, image);
 
-      card.addAmount();
       card.setTappedOut();
+      card.addTappedOutAmount();
 
       cards.push(card);
     }
@@ -92,7 +92,10 @@ export default class TappedOut extends BasePage {
 
     for (const url of paginationList) {
       const array = await this._getDeckLinks(url);
-      deckList.concat(array);
+
+      for (const link of array) {
+        deckList.push(link);
+      }
     }
 
     return deckList;

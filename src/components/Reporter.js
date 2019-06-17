@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import dateFns from "date-fns";
 import { isString, isFunction } from "lodash";
-import logger from "logger";
 import DomainTypeError from "errors/DomainTypeError";
 import improveReportTemplate from "templates/improve-report-template";
 
@@ -36,6 +35,6 @@ export default class Reporter {
     const html = await improveReportTemplate(this.commander, this.deckList);
     fs.appendFileSync(file, html);
 
-    logger.info(`file can be found in:\n\n-->  ${file}  <--\n`);
+    console.log(`file can be found in:\n\n-->  ${file}  <--\n`);
   }
 }

@@ -13,7 +13,8 @@ export default class Card {
 
     this.name = name;
     this.image = null;
-    this.amount = 0;
+    this.tappedOutAmount = 0;
+    this.edhRecAmount = 0;
     this.synergy = 0;
 
     this.isDeck = false;
@@ -30,25 +31,6 @@ export default class Card {
   }
 
   /**
-   */
-  setEDHRec() {
-    this.isEDHRec = true;
-  }
-
-  /**
-   */
-  setTappedOut() {
-    this.isTappedOut = true;
-  }
-
-  /**
-   * @param {number} [synergy]
-   */
-  setSynergy(synergy = 0) {
-    this.synergy = synergy;
-  }
-
-  /**
    * @param {string} image
    */
   setImage(image) {
@@ -58,10 +40,36 @@ export default class Card {
   }
 
   /**
+   */
+  setEDHRec() {
+    this.isEDHRec = true;
+  }
+
+  /**
+   * @param {number} amount
+   */
+  setEDHRecAmount(amount) {
+    this.edhRecAmount = amount;
+  }
+
+  /**
+   * @param {number} [synergy]
+   */
+  setEDHRecSynergy(synergy = 0) {
+    this.synergy = synergy;
+  }
+
+  /**
+   */
+  setTappedOut() {
+    this.isTappedOut = true;
+  }
+
+  /**
    * @param {number} [amount]
    */
-  addAmount(amount = 1) {
-    this.amount += amount;
+  addTappedOutAmount(amount = 1) {
+    this.tappedOutAmount += amount;
   }
 
   /**
@@ -77,6 +85,7 @@ export default class Card {
    * @returns {boolean}
    */
   static isImageValid(image) {
+    if (!image) return false;
     return includes(image.toLowerCase(), "scryfall");
   }
 }

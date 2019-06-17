@@ -1,4 +1,5 @@
-import { isString } from "lodash";
+import readline from "readline";
+import { includes, isNumber, isString } from "lodash";
 import logger from "logger";
 import BasePage from "pages/BasePage";
 import Card from "objects/Card";
@@ -16,18 +17,27 @@ export default class EDHRec extends BasePage {
 
     this.commanderQueryString = commanderQueryString;
     this.url = `https://edhrec.com/commanders/${this.commanderQueryString}`;
+    this.themeSelector = `a[href^="${this.commanderQueryString}-"]`;
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
+  async goto() {
+    logger.debug("going to url", this.url);
+    await super.goto({
+      url: this.url,
+      waitForSelector: Selector.EdhRec.Card.ELEMENT,
+    });
+  }
+
+  /**
+   * @returns {Promise<Array<Card>>}
+   */
   async getSuggestedCards() {
     const array = [];
 
     logger.verbose("getting suggested cards from EDHRec");
-    logger.debug("going to url", this.url);
-
-    await this.goto({
-      url: this.url,
-      waitForSelector: Selector.EdhRec.Card.ELEMENT,
-    });
 
     const regexDecksPercent = /(\d+\%.*of)/;
     const regexDecksNumber = /(of.*)(\d+)(.*decks)/;
@@ -36,6 +46,7 @@ export default class EDHRec extends BasePage {
 
     logger.debug("locating cards");
 
+    await this.page.waitForSelector(Selector.EdhRec.Card.ELEMENT);
     const cards = await this.page.$$(Selector.EdhRec.Card.ELEMENT);
 
     for (const element of cards) {
@@ -66,9 +77,9 @@ export default class EDHRec extends BasePage {
 
       const card = new Card(name, image);
 
-      card.addAmount(amount);
       card.setEDHRec();
-      card.setSynergy(synergy);
+      card.setEDHRecAmount(amount);
+      card.setEDHRecSynergy(synergy);
 
       logger.silly("adding EDHRec card", card.name);
 
@@ -76,5 +87,115 @@ export default class EDHRec extends BasePage {
     }
 
     return array;
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async selectThemeAndBudget() {
+    const themeArray = [];
+    const budgetArray = [];
+
+    await this.page.waitForSelector(this.themeSelector);
+    const elements = await this.page.$$(this.themeSelector);
+
+    for (const element of elements) {
+      const href = await this.getElementAttribute(element, ElementAttribute.HREF);
+      let text = await this.getElementText(element);
+      text = text.replace(/\s{2,}/g, "");
+      text = text.replace(/\n/g, "");
+
+      if (includes(href, "budget")) {
+        budgetArray.push({ text, element });
+      } else {
+        themeArray.push({ text, element });
+      }
+    }
+
+    const themeAnswer = await this.selectThemeDialog(themeArray);
+
+    if (themeAnswer !== 0) {
+      const clickObject = themeArray[themeAnswer - 1];
+      await clickObject.element.click();
+      await this.page.waitForSelector(Selector.EdhRec.Card.ELEMENT);
+    }
+
+    const budgetAnswer = await this.selectBudgetDialog(budgetArray);
+
+    if (budgetAnswer !== 0) {
+      const clickObject = budgetArray[budgetAnswer - 1];
+      await clickObject.element.click();
+      await this.page.waitForSelector(Selector.EdhRec.Card.ELEMENT);
+    }
+  }
+
+  /**
+   * @param {Array<string>} array
+   * @returns {Promise<number>}
+   */
+  async selectThemeDialog(array) {
+    const allowedAnswers = [ 0 ];
+
+    let question = "Select one theme if you want:\n";
+    let num = 1;
+    for (const obj of array) {
+      allowedAnswers.push(num);
+      question += `  ${num}: ${obj.text}\n`;
+      num += 1;
+    }
+    question += "  0: no theme\n";
+
+    while (true) {
+      const answer = await this.readLine(question);
+      const number = parseInt(answer, 10);
+
+      if (!isNumber(number)) continue;
+      if (!includes(allowedAnswers, number)) continue;
+
+      return number;
+    }
+  }
+
+  /**
+   * @param {Array<string>} array
+   * @returns {Promise<number>}
+   */
+  async selectBudgetDialog(array) {
+    const allowedAnswers = [ 0 ];
+
+    let question = "Select a budget if you want:\n";
+    let num = 1;
+    for (const obj of array) {
+      allowedAnswers.push(num);
+      question += `  ${num}: ${obj.text}\n`;
+      num += 1;
+    }
+    question += "  0: no budget\n";
+
+    while (true) {
+      const answer = await this.readLine(question);
+      const number = parseInt(answer, 10);
+
+      if (!isNumber(number)) continue;
+      if (!includes(allowedAnswers, number)) continue;
+
+      return number;
+    }
+  }
+
+  /**
+   * @param {string} question
+   * @returns {Promise<string>}
+   */
+  async readLine(question) {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    return new Promise(resolve => rl.question(`${question}\nAnswer: `, answer => {
+      rl.close();
+      resolve(answer);
+    }));
   }
 }

@@ -1,8 +1,7 @@
-import { includes } from "lodash";
 import logger from "logger";
 import ArraySort from "components/ArraySort";
+import Scryfall from "components/Scryfall";
 import SortBy from "enums/SortBy";
-import Scryfall from "../components/Scryfall";
 
 export default class DeckList {
   constructor() {
@@ -30,49 +29,60 @@ export default class DeckList {
    * @param {Card} card
    */
   add(card) {
-    for (const listCard of this.list) {
-      if (listCard.isSame(card)) {
-        listCard.addAmount(card.amount);
-        listCard.setSynergy(card.synergy);
-
-        if (includes(card.image, "scryfall")) {
-          listCard.setImage(card.image);
-        }
-        return;
-      }
-    }
-
     for (const regex of this.rxBasicLand) {
       if (card.name.match(regex)) return;
+    }
+
+    for (const listCard of this.list) {
+      if (!listCard.isSame(card)) continue;
+
+      if (card.isTappedOut) {
+        listCard.addTappedOutAmount(card.tappedOutAmount);
+      }
+
+      if (card.isEDHRec) {
+        listCard.setEDHRecAmount(card.edhRecAmount);
+        listCard.setEDHRecSynergy(card.synergy);
+      }
+
+      listCard.setImage(card.image);
+
+      return;
     }
 
     this.list.push(card);
   }
 
   /**
-   * @returns {Array<Card>}
+   * @returns {Promise<Array<Card>>}
    */
-  async getCardsInDeckByLeastUsage(amount) {
-    logger.debug("returning DeckList cards by least usage");
-    return this._getCardsFromList(true, SortBy.ASC, amount);
+  async getEDHRecSuggestions() {
+    return this._getCardsFromList(false, "edhRecAmount", SortBy.DESC, 16);
   }
 
   /**
-   * @returns {Array<Card>}
+   * @returns {Promise<Array<Card>>}
    */
-  async getCardsNotInDeckByMostUsage(amount) {
-    logger.debug("returning DeckList cards by not in deck and most usage");
-    return this._getCardsFromList(false, SortBy.DESC, amount);
+  async getTappedOutSuggestions() {
+    return this._getCardsFromList(false, "tappedOutAmount", SortBy.DESC, 16);
+  }
+
+  /**
+   * @returns {Promise<Array<Card>>}
+   */
+  async getLeastUsedCardsInDeck() {
+    return this._getCardsFromList(true, "tappedOutAmount", SortBy.ASC, 16);
   }
 
   /**
    * @param {boolean} inDeck
+   * @param {string} property
    * @param {string} sortBy
-   * @param {number} amount
+   * @param {number} listSize
    * @returns {Array<Card>}
    * @private
    */
-  async _getCardsFromList(inDeck, sortBy, amount = 20) {
+  async _getCardsFromList(inDeck, property, sortBy, listSize = 16) {
     const pickedCards = [];
     for (const card of this.list) {
       if (!card.isDeck && inDeck) continue;
@@ -81,10 +91,10 @@ export default class DeckList {
       pickedCards.push(card);
     }
 
-    const sortedCards = ArraySort.sortProperty(pickedCards, "amount", sortBy);
+    const sortedCards = ArraySort.sortProperty(pickedCards, property, sortBy);
 
     const returningCards = [];
-    for (let i = 0; i < amount; i++) {
+    for (let i = 0; i < listSize; i++) {
       const card = sortedCards[i];
       if (!card.image) {
         const scryfallImage = await Scryfall.getImage(card);

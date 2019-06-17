@@ -7,10 +7,11 @@ export default class PuppeteerManager {
   }
 
   /**
+   * @param {boolean} [headless]
    * @returns {Promise<void>}
    */
-  async init() {
-    this.browser = await puppeteer.launch();
+  async init(headless = true) {
+    this.browser = await puppeteer.launch({ headless });
     this.page = await this.browser.newPage();
   }
 }

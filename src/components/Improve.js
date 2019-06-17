@@ -22,6 +22,7 @@ export default class Improve {
   }
 
   async run() {
+    console.log("Starting...\nThis will take ~5 minutes.\nYou will be asked for EDHRec theme at the end.\n");
     logger.info("starting commander deck improve run");
 
     const deckList = new DeckList();
@@ -32,12 +33,15 @@ export default class Improve {
     logger.verbose("logging in");
     await tappedOut.login(this.username, this.password);
 
-    logger.verbose("adding commander cards to DeckList");
     await tappedOut.goto({
       url: this.url,
       waitForSelector: Selector.TappedOut.CARD,
     });
+
+    logger.verbose("fetching commander query string");
     const commanderQueryString = await tappedOut.getCommanderQueryString();
+
+    logger.verbose("adding commander cards to DeckList");
     const commanderCards = await tappedOut.getCards();
 
     for (const card of commanderCards) {
@@ -45,12 +49,6 @@ export default class Improve {
     }
 
     deckList.join(commanderCards);
-
-    logger.verbose("adding EDHRec cards to DeckList");
-    const edhRec = new EDHRec(this.manager, commanderQueryString);
-    const edhRecCards = await edhRec.getSuggestedCards();
-
-    deckList.join(edhRecCards);
 
     logger.verbose("adding TappedOut similar decks cards to DeckList");
     const similarDeckLinks = await tappedOut.getSimilarDeckLinks(commanderQueryString);
@@ -63,6 +61,18 @@ export default class Improve {
       const cards = await tappedOut.getCards();
       deckList.join(cards);
     }
+
+    logger.verbose("Starting EDH Rec");
+    const edhRec = new EDHRec(this.manager, commanderQueryString);
+    await edhRec.goto();
+
+    logger.verbose("Asking for input on which EDHRec theme to use");
+    await edhRec.selectThemeAndBudget();
+
+    logger.verbose("adding EDHRec cards to DeckList");
+    const edhRecCards = await edhRec.getSuggestedCards();
+
+    deckList.join(edhRecCards);
 
     logger.verbose("creating report");
     const reporter = new Reporter(commanderQueryString, deckList);
