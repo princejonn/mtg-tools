@@ -41,7 +41,7 @@ export default class DeckList {
       }
     }
 
-    for (let regex of this.rxBasicLand) {
+    for (const regex of this.rxBasicLand) {
       if (card.name.match(regex)) return;
     }
 
