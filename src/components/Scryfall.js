@@ -6,7 +6,7 @@ export default class Scryfall {
       setTimeout(resolve.bind(null), 100);
     });
 
-    const name = card.name;
+    const { name } = card;
     const url = `https://api.scryfall.com/cards/search?q=${name}`;
     const result = await request(url, { method: "GET" });
     const parsed = JSON.parse(result);

@@ -84,4 +84,4 @@ export default async (commanderQueryString, deckList) => {
     <section class="card-list">${removeArray.join("")}</section>
 </body>
 </html>`);
-}
+};
