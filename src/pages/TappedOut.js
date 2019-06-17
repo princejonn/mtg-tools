@@ -64,7 +64,7 @@ export default class TappedOut extends BasePage {
       const name = await this.getElementAttribute(element, ElementAttribute.DATA_NAME);
       const image = await this.getElementAttribute(element, ElementAttribute.DATA_IMAGE);
 
-      const card = new Card(name, image.slice(2));
+      const card = new Card(name, image);
 
       card.addAmount();
       card.setTappedOut();

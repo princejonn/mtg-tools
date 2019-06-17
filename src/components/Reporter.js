@@ -4,6 +4,7 @@ import dateFns from "date-fns";
 import { isString, isFunction } from "lodash";
 import logger from "logger";
 import DomainTypeError from "errors/DomainTypeError";
+import improveReportTemplate from "templates/improve-report-template";
 
 export default class Reporter {
   /**
@@ -29,33 +30,12 @@ export default class Reporter {
     }
   }
 
-  createTxt() {
-    const amount = 20;
-    const file = path.join(this.cwd, `${this.commander}-${this.now}.txt`);
+  async create() {
+    const file = path.join(this.cwd, `${this.commander}-${this.now}.html`);
 
-    const addTheseCards = this.deckList.getCardsNotInDeckByMostUsage();
-    const removeTheseCards = this.deckList.getCardsInDeckByLeastUsage();
-
-    fs.appendFileSync(file, "\r\nCONSIDER ADDING THESE CARDS TO YOUR DECK\r\n\r\n");
-
-    for (let i = 0; i < amount; i++) {
-      const card = addTheseCards[i];
-      fs.appendFileSync(file, card.getTxt());
-    }
-
-    fs.appendFileSync(file, "\r\n\r\nCONSIDER REMOVING THESE CARDS FROM YOUR DECK\r\n\r\n");
-
-    for (let i = 0; i < amount; i++) {
-      const card = removeTheseCards[i];
-      fs.appendFileSync(file, card.getTxt());
-    }
-
-    fs.appendFileSync(file, "\r\n");
+    const html = await improveReportTemplate(this.commander, this.deckList);
+    fs.appendFileSync(file, html);
 
     logger.info(`file can be found in:\n\n-->  ${file}  <--\n`);
-  }
-
-  createHTML() {
-    throw new Error("feature createHTML not finished.");
   }
 }

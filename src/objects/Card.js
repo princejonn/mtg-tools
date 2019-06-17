@@ -10,23 +10,17 @@ export default class Card {
     if (!isString(name)) {
       throw new DomainTypeError({ name });
     }
-    this._validateImage(image);
 
     this.name = name;
-    this.image = image;
+    this.image = null;
     this.amount = 0;
     this.synergy = 0;
 
     this.isDeck = false;
     this.isEDHRec = false;
     this.isTappedOut = false;
-  }
 
-  /**
-   * @returns {string}
-   */
-  getTxt() {
-    return `${this.name}\r\n  image: ${this.image}\r\n  data: [ amount: ${this.amount} ] [ synergy: ${this.synergy}% ]\r\n\r\n`;
+    this.setImage(image);
   }
 
   /**
@@ -58,8 +52,9 @@ export default class Card {
    * @param {string} image
    */
   setImage(image) {
-    this._validateImage(image);
-    this.image = image;
+    if (Card.isImageValid(image)) {
+      this.image = image;
+    }
   }
 
   /**
@@ -78,16 +73,10 @@ export default class Card {
   }
 
   /**
-   * @param image
-   * @private
+   * @param {string} image
+   * @returns {boolean}
    */
-  _validateImage(image) {
-    if (
-      !includes(image.toLowerCase(), "jpg") &&
-      !includes(image.toLowerCase(), "jpeg") &&
-      !includes(image.toLowerCase(), "png")
-    ) {
-      throw new DomainTypeError({ image });
-    }
+  static isImageValid(image) {
+    return includes(image.toLowerCase(), "scryfall");
   }
 }

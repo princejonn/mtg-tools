@@ -66,6 +66,7 @@ export default class Improve {
 
     logger.verbose("creating report");
     const reporter = new Reporter(commanderQueryString, deckList);
-    reporter.createTxt();
+
+    await reporter.create();
   }
 }
