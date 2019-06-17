@@ -10,9 +10,7 @@ export default class Card {
     if (!isString(name)) {
       throw new DomainTypeError({ name });
     }
-    if (!includes(image.toLowerCase(), "jpg") && !includes(image.toLowerCase(), "png")) {
-      throw new DomainTypeError({ image });
-    }
+    this._validateImage(image);
 
     this.name = name;
     this.image = image;
@@ -60,9 +58,7 @@ export default class Card {
    * @param {string} image
    */
   setImage(image) {
-    if (!includes(image.toLowerCase(), "jpg") && !includes(image.toLowerCase(), "png")) {
-      throw new DomainTypeError({ image });
-    }
+    this._validateImage(image);
     this.image = image;
   }
 
@@ -79,5 +75,19 @@ export default class Card {
   isSame(card) {
     const name = card.name.replace(/\s+\/\/.*/, "");
     return name === this.name;
+  }
+
+  /**
+   * @param image
+   * @private
+   */
+  _validateImage(image) {
+    if (
+      !includes(image.toLowerCase(), "jpg") &&
+      !includes(image.toLowerCase(), "jpeg") &&
+      !includes(image.toLowerCase(), "png")
+    ) {
+      throw new DomainTypeError({ image });
+    }
   }
 }
