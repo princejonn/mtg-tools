@@ -4,14 +4,13 @@ import DomainTypeError from "errors/DomainTypeError";
 
 export default class BasePage {
   /**
-   * @param {PuppeteerManager} manager
+   * @param {object} page
    */
-  constructor(manager) {
-    if (!isFunction(manager.init)) {
-      throw new DomainTypeError({ manager });
+  constructor(page) {
+    if (!isFunction(page.goto)) {
+      throw new DomainTypeError({ page });
     }
-    this.browser = manager.browser;
-    this.page = manager.page;
+    this.page = page;
   }
 
   /**
@@ -23,12 +22,6 @@ export default class BasePage {
     logger.debug("going to url", url);
     await this.page.goto(url);
     await this.page.waitForSelector(waitForSelector, { visible: true });
-  }
-
-  /**
-   */
-  close() {
-    this.browser.close();
   }
 
   /**

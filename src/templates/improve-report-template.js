@@ -10,27 +10,30 @@ const getCardHTML = card => {
 };
 
 export default async (commanderQueryString, deckList) => {
-  const EDHRecSuggestions = await deckList.getEDHRecSuggestions();
-  const TappedOutSuggestions = await deckList.getTappedOutSuggestions();
-  const LeastUsedCardsInDeck = await deckList.getLeastUsedCardsInDeck();
+  const edhRecSuggestions = await deckList.getEDHRecSuggestions();
+  const tappedOutSuggestions = await deckList.getTappedOutSuggestions();
+  const leastUsedCardsInDeck = await deckList.getLeastUsedCardsInDeck();
+  const mostSimilarDeck = await deckList.getMostSimilarDeck();
 
   const edhRecArray = [];
   const tappedOutArray = [];
   const removeArray = [];
+  const similarArray = [];
 
-  for (let i = 0; i < EDHRecSuggestions.length; i++) {
-    const card = EDHRecSuggestions[i];
+  for (const card of edhRecSuggestions) {
     edhRecArray.push(getCardHTML(card));
   }
 
-  for (let i = 0; i < TappedOutSuggestions.length; i++) {
-    const card = TappedOutSuggestions[i];
+  for (const card of tappedOutSuggestions) {
     tappedOutArray.push(getCardHTML(card));
   }
 
-  for (let i = 0; i < LeastUsedCardsInDeck.length; i++) {
-    const card = LeastUsedCardsInDeck[i];
+  for (const card of leastUsedCardsInDeck) {
     removeArray.push(getCardHTML(card));
+  }
+
+  for (const card of mostSimilarDeck.cards) {
+    similarArray.push(getCardHTML(card));
   }
 
   return (`<html>
@@ -83,6 +86,12 @@ export default async (commanderQueryString, deckList) => {
   padding-bottom: 5px;
   text-align: center;
 }
+.card-list-header-sub {
+  font-size: 16pt;
+  padding-top: 30px;
+  padding-bottom: 5px;
+  text-align: center;
+}
 .card-list {
   display: flex;
   justify-content: space-around;
@@ -119,6 +128,9 @@ export default async (commanderQueryString, deckList) => {
     <section class="card-list">${tappedOutArray.join("")}</section>
     <header class="card-list-header">Consider removing these cards</header>
     <section class="card-list">${removeArray.join("")}</section>
+    <header class="card-list-header">The most similar deck (${mostSimilarDeck.similarity}%) (${mostSimilarDeck.cards.length} cards)</header>
+    <div class="card-list-header-sub"><a href="${mostSimilarDeck.link}" target="_blank">link</a></div>
+    <section class="card-list">${similarArray.join("")}</section>
 </body>
 </html>`);
 };

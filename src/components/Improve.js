@@ -22,13 +22,12 @@ export default class Improve {
   }
 
   async run() {
-    console.log("Starting...\nThis will take ~5 minutes.\nYou will be asked for EDHRec theme at the end.\n");
-    logger.info("starting commander deck improve run");
+    console.log("Starting...\nThis will take ~5 minutes.\nYou will be asked to select EDHRec theme and budget.\n");
 
     const deckList = new DeckList();
 
     await this.manager.init();
-    const tappedOut = new TappedOut(this.manager);
+    const tappedOut = new TappedOut(this.manager.page);
 
     logger.verbose("logging in");
     await tappedOut.login(this.username, this.password);
@@ -51,19 +50,38 @@ export default class Improve {
     deckList.join(commanderCards);
 
     logger.verbose("adding TappedOut similar decks cards to DeckList");
-    const similarDeckLinks = await tappedOut.getSimilarDeckLinks(commanderQueryString);
+
+    const pageNumbers = [ 1, 2, 3 ];
+    const similarDeckLinks = [];
+
+    for (const pageNumber of pageNumbers) {
+      try {
+        const links = await tappedOut.getSimilarDeckLinks(commanderQueryString, pageNumber);
+
+        for (const link of links) {
+          similarDeckLinks.push(link);
+        }
+      } catch (err) {
+        logger.warn(err);
+      }
+    }
 
     for (const deckLink of similarDeckLinks) {
-      await tappedOut.goto({
-        url: deckLink,
-        waitForSelector: Selector.TappedOut.CARD,
-      });
-      const cards = await tappedOut.getCards();
-      deckList.join(cards);
+      try {
+        await tappedOut.goto({
+          url: deckLink,
+          waitForSelector: Selector.TappedOut.CARD,
+        });
+        const cards = await tappedOut.getCards();
+        deckList.attach({ deckLink, cards });
+        deckList.join(cards);
+      } catch (err) {
+        logger.warn(err);
+      }
     }
 
     logger.verbose("Starting EDH Rec");
-    const edhRec = new EDHRec(this.manager, commanderQueryString);
+    const edhRec = new EDHRec(this.manager.page, commanderQueryString);
     await edhRec.goto();
 
     logger.verbose("Asking for input on which EDHRec theme to use");

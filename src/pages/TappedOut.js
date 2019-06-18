@@ -54,22 +54,26 @@ export default class TappedOut extends BasePage {
 
     const cards = [];
 
-    await this.page.waitForSelector(Selector.TappedOut.CARD);
+    try {
+      await this.page.waitForSelector(Selector.TappedOut.CARD);
 
-    const parents = await this.page.$$(Selector.TappedOut.CARD_LISTS);
-    const mainBoard = parents[0];
-    const elements = await mainBoard.$$(Selector.TappedOut.CARD);
+      const parents = await this.page.$$(Selector.TappedOut.CARD_LISTS);
+      const mainBoard = parents[0];
+      const elements = await mainBoard.$$(Selector.TappedOut.CARD);
 
-    for (const element of elements) {
-      const name = await this.getElementAttribute(element, ElementAttribute.DATA_NAME);
-      const image = await this.getElementAttribute(element, ElementAttribute.DATA_IMAGE);
+      for (const element of elements) {
+        const name = await this.getElementAttribute(element, ElementAttribute.DATA_NAME);
+        const image = await this.getElementAttribute(element, ElementAttribute.DATA_IMAGE);
 
-      const card = new Card(name, image);
+        const card = new Card(name, image);
 
-      card.setTappedOut();
-      card.addTappedOutAmount();
+        card.setTappedOut();
+        card.addTappedOutAmount();
 
-      cards.push(card);
+        cards.push(card);
+      }
+    } catch (err) {
+      logger.error(err);
     }
 
     return cards;
@@ -77,78 +81,28 @@ export default class TappedOut extends BasePage {
 
   /**
    * @param {string} commanderQueryString
+   * @param {number} pageNumber
    * @returns {Promise<Array<string>>}
    */
-  async getSimilarDeckLinks(commanderQueryString) {
+  async getSimilarDeckLinks(commanderQueryString, pageNumber) {
     logger.debug("getting similar deck links");
 
-    await this.goto({
-      url: `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commanderQueryString}&price_0=&price_1=&o=-rating&submit=Filter+results`,
-      waitForSelector: Selector.TappedOut.Pagination.ACTIVE,
-    });
-
-    const paginationList = await this._getPaginationLinks();
-    const deckList = [];
-
-    for (const url of paginationList) {
-      const array = await this._getDeckLinks(url);
-
-      for (const link of array) {
-        deckList.push(link);
-      }
-    }
-
-    return deckList;
-  }
-
-  /**
-   * @returns {Promise<Array<string>>}
-   * @private
-   */
-  async _getPaginationLinks() {
-    logger.debug("getting first three pagination links on search page if they exist");
-
     const array = [];
 
-    const elements = await this.page.$$(Selector.TappedOut.Pagination.LINK);
+    try {
+      await this.goto({
+        url: `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commanderQueryString}&price_0=&price_1=&o=-rating&submit=Filter+results&p=${pageNumber}&page=${pageNumber}`,
+        waitForSelector: Selector.TappedOut.Pagination.ACTIVE,
+      });
 
-    for (const element of elements) {
-      if (array.length >= 3) continue;
+      const elements = await this.page.$$(Selector.TappedOut.Search.DECK_LINK);
 
-      const url = await this.getElementAttribute(element, ElementAttribute.HREF);
-
-      if (
-        _.includes(url, "&p=1&page=1") ||
-        _.includes(url, "&p=2&page=2") ||
-        _.includes(url, "&p=3&page=3")
-      ) {
-        array.push(`https://tappedout.net/mtg-decks/search/${url}`);
+      for (const element of elements) {
+        const deckLinkUrl = await this.getElementAttribute(element, ElementAttribute.HREF);
+        array.push(`https://tappedout.net${deckLinkUrl}`);
       }
-    }
-
-    return array;
-  }
-
-  /**
-   * @param {string} url
-   * @returns {Promise<Array<string>>}
-   * @private
-   */
-  async _getDeckLinks(url) {
-    logger.debug("getting deck links on search page");
-
-    const array = [];
-
-    await this.goto({
-      url,
-      waitForSelector: Selector.TappedOut.Pagination.ACTIVE,
-    });
-
-    const deckLinks = await this.page.$$(Selector.TappedOut.Search.DECK_LINK);
-
-    for (const element of deckLinks) {
-      const deckLinkUrl = await this.getElementAttribute(element, ElementAttribute.HREF);
-      array.push(`https://tappedout.net${deckLinkUrl}`);
+    } catch (err) {
+      logger.error(err);
     }
 
     return array;

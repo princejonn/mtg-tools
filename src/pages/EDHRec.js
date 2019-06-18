@@ -8,8 +8,12 @@ import Selector from "enums/Selector";
 import DomainTypeError from "errors/DomainTypeError";
 
 export default class EDHRec extends BasePage {
-  constructor(manager, commanderQueryString) {
-    super(manager);
+  /**
+   * @param {object} page
+   * @param {string} commanderQueryString
+   */
+  constructor(page, commanderQueryString) {
+    super(page);
 
     if (!isString(commanderQueryString)) {
       throw new DomainTypeError({ commanderQueryString });
@@ -24,7 +28,6 @@ export default class EDHRec extends BasePage {
    * @returns {Promise<void>}
    */
   async goto() {
-    logger.debug("going to url", this.url);
     await super.goto({
       url: this.url,
       waitForSelector: Selector.EdhRec.Card.ELEMENT,
@@ -112,25 +115,12 @@ export default class EDHRec extends BasePage {
       }
     }
 
-    const themeAnswer = await this.selectThemeDialog(themeArray);
-
-    if (themeAnswer !== 0) {
-      const clickObject = themeArray[themeAnswer - 1];
-      await clickObject.element.click();
-      await this.page.waitForSelector(Selector.EdhRec.Card.ELEMENT);
-    }
-
-    const budgetAnswer = await this.selectBudgetDialog(budgetArray);
-
-    if (budgetAnswer !== 0) {
-      const clickObject = budgetArray[budgetAnswer - 1];
-      await clickObject.element.click();
-      await this.page.waitForSelector(Selector.EdhRec.Card.ELEMENT);
-    }
+    await this.selectThemeDialog(themeArray);
+    await this.selectBudgetDialog(budgetArray);
   }
 
   /**
-   * @param {Array<string>} array
+   * @param {Array<object>} array
    * @returns {Promise<number>}
    */
   async selectThemeDialog(array) {
@@ -145,15 +135,8 @@ export default class EDHRec extends BasePage {
     }
     question += "  0: no theme\n";
 
-    while (true) {
-      const answer = await this.readLine(question);
-      const number = parseInt(answer, 10);
-
-      if (!isNumber(number)) continue;
-      if (!includes(allowedAnswers, number)) continue;
-
-      return number;
-    }
+    const answer = await this._readLineMenu(question, allowedAnswers);
+    await this._clickAnsweredElement(array, answer);
   }
 
   /**
@@ -172,8 +155,34 @@ export default class EDHRec extends BasePage {
     }
     question += "  0: no budget\n";
 
+    const answer = await this._readLineMenu(question, allowedAnswers);
+    await this._clickAnsweredElement(array, answer);
+  }
+
+  /**
+   * @param {Array<object>} array
+   * @param {number} answer
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _clickAnsweredElement(array, answer) {
+    console.log(" ");
+    if (answer === 0) return;
+
+    const clickObject = array[answer - 1];
+    await clickObject.element.click();
+    await this.page.waitForSelector(Selector.EdhRec.Card.ELEMENT);
+  }
+
+  /**
+   * @param {string} question
+   * @param {Array<number>} allowedAnswers
+   * @returns {Promise<number>}
+   * @private
+   */
+  async _readLineMenu(question, allowedAnswers) {
     while (true) {
-      const answer = await this.readLine(question);
+      const answer = await this._readLine(question);
       const number = parseInt(answer, 10);
 
       if (!isNumber(number)) continue;
@@ -186,8 +195,9 @@ export default class EDHRec extends BasePage {
   /**
    * @param {string} question
    * @returns {Promise<string>}
+   * @private
    */
-  async readLine(question) {
+  async _readLine(question) {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,

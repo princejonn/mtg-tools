@@ -73,6 +73,13 @@ export default class Card {
   }
 
   /**
+   * @param {number} amount
+   */
+  setTappedOutAmount(amount) {
+    this.tappedOutAmount = amount;
+  }
+
+  /**
    * @param {Card} card
    */
   isSame(card) {
