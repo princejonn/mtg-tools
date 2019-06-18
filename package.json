@@ -6,7 +6,6 @@
   "description": "",
   "scripts": {
     "build": "cross-env BABEL_ENV=production babel src --out-dir lib",
-    "build:dev": "cross-env BABEL_ENV=development babel src --out-dir lib",
     "check": "npm-check --update",
     "clean": "rimraf lib",
     "clean:modules": "npm run clean && rimraf package-lock.json && rimraf node_modules",

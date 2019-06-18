@@ -137,6 +137,7 @@ export default class EDHRec extends BasePage {
 
     const answer = await this._readLineMenu(question, allowedAnswers);
     await this._clickAnsweredElement(array, answer);
+    await RateLimit.delay(2000);
   }
 
   /**
@@ -157,6 +158,7 @@ export default class EDHRec extends BasePage {
 
     const answer = await this._readLineMenu(question, allowedAnswers);
     await this._clickAnsweredElement(array, answer);
+    await RateLimit.delay(2000);
   }
 
   /**

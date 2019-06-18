@@ -32,9 +32,6 @@
             "node": "current"
           }
         }
-        ],
-        [
-          "minify"
         ]
       ],
       "plugins": [

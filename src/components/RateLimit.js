@@ -1,19 +1,19 @@
 export default class RateLimit {
   static async edhRec() {
-    return new Promise((resolve) => {
-      setTimeout(resolve.bind(null), 100);
-    });
+    await RateLimit.delay(333);
   }
 
   static async scryfall() {
-    return new Promise((resolve) => {
-      setTimeout(resolve.bind(null), 120);
-    });
+    await RateLimit.delay(111);
   }
 
   static async tappedOut() {
+    await RateLimit.delay(333);
+  }
+
+  static async delay(milliseconds) {
     return new Promise((resolve) => {
-      setTimeout(resolve.bind(null), 200);
+      setTimeout(resolve.bind(null), milliseconds);
     });
   }
 }
