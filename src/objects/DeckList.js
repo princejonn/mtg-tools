@@ -163,7 +163,7 @@ export default class DeckList {
       }
     }
 
-    const similarity = Math.floor(((counter / comparisonCards.length) * 1000) / 10);
+    const similarity = Math.floor((counter / comparisonCards.length) * 1000) / 10;
 
     return { similarity, difference };
   }
