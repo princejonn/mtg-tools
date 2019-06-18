@@ -5,12 +5,24 @@ import BasePage from "pages/BasePage";
 import ElementAttribute from "enums/ElementAttribute";
 import Selector from "enums/Selector";
 import DomainTypeError from "errors/DomainTypeError";
+import RateLimit from "components/RateLimit";
 
 export default class TappedOut extends BasePage {
   constructor(page) {
     super(page);
 
     this.commanderQueryString = null;
+  }
+
+  /**
+   * @param {string} url
+   * @param {string} waitForSelector
+   * @returns {Promise<void>}
+   */
+  async goto({ url, waitForSelector }) {
+    logger.debug(`goto [ ${url} ]`);
+    await RateLimit.tappedOut();
+    await super.goto({ url, waitForSelector });
   }
 
   /**

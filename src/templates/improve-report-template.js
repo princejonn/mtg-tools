@@ -128,7 +128,7 @@ export default async (commanderQueryString, deckList) => {
     <section class="card-list">${tappedOutArray.join("")}</section>
     <header class="card-list-header">Consider removing these cards</header>
     <section class="card-list">${removeArray.join("")}</section>
-    <header class="card-list-header">The most similar deck (${mostSimilarDeck.similarity}%) (${mostSimilarDeck.cards.length} cards)</header>
+    <header class="card-list-header">Suggestions from most similar deck (${mostSimilarDeck.similarity}%)</header>
     <div class="card-list-header-sub"><a href="${mostSimilarDeck.link}" target="_blank">link</a></div>
     <section class="card-list">${similarArray.join("")}</section>
 </body>

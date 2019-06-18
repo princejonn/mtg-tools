@@ -6,6 +6,7 @@ import Card from "objects/Card";
 import ElementAttribute from "enums/ElementAttribute";
 import Selector from "enums/Selector";
 import DomainTypeError from "errors/DomainTypeError";
+import RateLimit from "components/RateLimit";
 
 export default class EDHRec extends BasePage {
   /**
@@ -28,6 +29,7 @@ export default class EDHRec extends BasePage {
    * @returns {Promise<void>}
    */
   async goto() {
+    await RateLimit.edhRec();
     await super.goto({
       url: this.url,
       waitForSelector: Selector.EdhRec.Card.ELEMENT,

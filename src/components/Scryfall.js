@@ -1,11 +1,10 @@
 import request from "request-promise-native";
 import logger from "logger";
+import RateLimit from "components/RateLimit";
 
 export default class Scryfall {
   static async getImage(card) {
-    await new Promise((resolve) => {
-      setTimeout(resolve.bind(null), 150);
-    });
+    await RateLimit.scryfall();
 
     let result;
 
