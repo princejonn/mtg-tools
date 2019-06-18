@@ -93,38 +93,12 @@ export default class EDHRec extends BasePage {
   }
 
   /**
-   * @returns {Promise<void>}
-   */
-  async selectThemeAndBudget() {
-    const themeArray = [];
-    const budgetArray = [];
-
-    await this.page.waitForSelector(this.themeSelector);
-    const elements = await this.page.$$(this.themeSelector);
-
-    for (const element of elements) {
-      const href = await this.getElementAttribute(element, ElementAttribute.HREF);
-      let text = await this.getElementText(element);
-      text = text.replace(/\s{2,}/g, "");
-      text = text.replace(/\n/g, "");
-
-      if (includes(href, "budget")) {
-        budgetArray.push({ text, element });
-      } else {
-        themeArray.push({ text, element });
-      }
-    }
-
-    await this.selectThemeDialog(themeArray);
-    await this.selectBudgetDialog(budgetArray);
-  }
-
-  /**
-   * @param {Array<object>} array
    * @returns {Promise<number>}
    */
-  async selectThemeDialog(array) {
+  async selectTheme() {
     const allowedAnswers = [ 0 ];
+
+    const array = await this._getSpecialButtons(false);
 
     let question = "Select one theme if you want:\n";
     let num = 1;
@@ -141,11 +115,12 @@ export default class EDHRec extends BasePage {
   }
 
   /**
-   * @param {Array<string>} array
    * @returns {Promise<number>}
    */
-  async selectBudgetDialog(array) {
+  async selectBudget() {
     const allowedAnswers = [ 0 ];
+
+    const array = await this._getSpecialButtons(true);
 
     let question = "Select a budget if you want:\n";
     let num = 1;
@@ -162,7 +137,35 @@ export default class EDHRec extends BasePage {
   }
 
   /**
-   * @param {Array<object>} array
+   * @param {boolean} budgetButtons
+   * @returns {Promise<Array<{text: string, element: object}>>}
+   * @private
+   */
+  async _getSpecialButtons(budgetButtons = false) {
+    const array = [];
+
+    await this.page.waitForSelector(this.themeSelector);
+    const elements = await this.page.$$(this.themeSelector);
+
+    for (const element of elements) {
+      const href = await this.getElementAttribute(element, ElementAttribute.HREF);
+      let text = await this.getElementText(element);
+      text = text.replace(/\s{2,}/g, "");
+      text = text.replace(/\n/g, "");
+
+      if (budgetButtons === true && includes(href, "budget")) {
+        array.push({ text, element });
+      }
+      if (budgetButtons === false && !includes(href, "budget")) {
+        array.push({ text, element });
+      }
+    }
+
+    return array;
+  }
+
+  /**
+   * @param {Array<{text: string, element: object}>} array
    * @param {number} answer
    * @returns {Promise<void>}
    * @private

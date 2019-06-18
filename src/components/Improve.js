@@ -67,8 +67,11 @@ export default class Improve {
     const edhRec = new EDHRec(this.manager.page, this.commanderQueryString);
     await edhRec.goto();
 
-    logger.verbose("asking for EDHRec theme and budget");
-    await edhRec.selectThemeAndBudget();
+    logger.verbose("asking for EDHRec theme");
+    await edhRec.selectTheme();
+
+    logger.verbose("asking for EDHRec budget");
+    await edhRec.selectBudget();
 
     logger.verbose("adding EDHRec cards to DeckList");
     const edhRecCards = await edhRec.getSuggestedCards();
