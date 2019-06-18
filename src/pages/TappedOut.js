@@ -7,6 +7,12 @@ import Selector from "enums/Selector";
 import DomainTypeError from "errors/DomainTypeError";
 
 export default class TappedOut extends BasePage {
+  constructor(page) {
+    super(page);
+
+    this.commanderQueryString = null;
+  }
+
   /**
    * @param {string} username
    * @param {string} password
@@ -20,8 +26,6 @@ export default class TappedOut extends BasePage {
       throw new DomainTypeError({ password });
     }
 
-    logger.debug("logging in with username", username);
-
     await this.goto({
       url: "https://tappedout.net/accounts/login/?next=/",
       waitForSelector: "input#id_username",
@@ -34,24 +38,22 @@ export default class TappedOut extends BasePage {
     await this.page.waitForSelector("div.tabbable ul.nav li.active", { visible: true });
   }
 
-  async getCommanderQueryString() {
-    logger.debug("returning commander query string from commander card on page");
-
+  async setCommanderQueryString() {
     const element = await this.page.$(Selector.TappedOut.COMMANDER);
     const url = await this.getElementAttribute(element, ElementAttribute.HREF);
-
     const split = url.split("/mtg-card/");
-    const name = split[1].slice(0, -1);
+    this.commanderQueryString = split[1].slice(0, -1);
+    logger.debug(`commander query string [ ${this.commanderQueryString} ]`);
+  }
 
-    return name;
+  async getCommanderQueryString() {
+    return this.commanderQueryString;
   }
 
   /**
    * @returns {Promise<Array<Card>>}
    */
   async getCards() {
-    logger.debug("returning cards from Main Board on page");
-
     const cards = [];
 
     try {
@@ -70,28 +72,32 @@ export default class TappedOut extends BasePage {
         card.setTappedOut();
         card.addTappedOutAmount();
 
+        logger.silly("adding TappedOut card", card.name);
+
         cards.push(card);
       }
     } catch (err) {
       logger.error(err);
     }
 
+    logger.debug(`found [ ${cards.length} ] TappedOut cards`);
     return cards;
   }
 
   /**
-   * @param {string} commanderQueryString
-   * @param {number} pageNumber
    * @returns {Promise<Array<string>>}
    */
-  async getSimilarDeckLinks(commanderQueryString, pageNumber) {
-    logger.debug("getting similar deck links");
-
+  async getSimilarDeckLinks() {
+    const pageNumbers = [ 1, 2, 3 ];
     const array = [];
 
-    try {
+    for (const pageNumber of pageNumbers) {
+      const url = `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${this.commanderQueryString}&price_0=&price_1=&o=-rating&submit=Filter+results&p=${pageNumber}&page=${pageNumber}`;
+
+      logger.debug(`getting deck links [ ${url} ]`);
+
       await this.goto({
-        url: `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commanderQueryString}&price_0=&price_1=&o=-rating&submit=Filter+results&p=${pageNumber}&page=${pageNumber}`,
+        url,
         waitForSelector: Selector.TappedOut.Pagination.ACTIVE,
       });
 
@@ -99,12 +105,13 @@ export default class TappedOut extends BasePage {
 
       for (const element of elements) {
         const deckLinkUrl = await this.getElementAttribute(element, ElementAttribute.HREF);
-        array.push(`https://tappedout.net${deckLinkUrl}`);
-      }
-    } catch (err) {
-      logger.error(err);
-    }
+        const completeUrl = `https://tappedout.net${deckLinkUrl}`;
 
+        logger.debug(`deck link [ ${completeUrl} ]`);
+
+        array.push(completeUrl);
+      }
+    }
     return array;
   }
 }

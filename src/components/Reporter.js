@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import dateFns from "date-fns";
 import { isString, isFunction } from "lodash";
+import logger from "logger";
 import DomainTypeError from "errors/DomainTypeError";
 import improveReportTemplate from "templates/improve-report-template";
 
@@ -18,7 +19,7 @@ export default class Reporter {
       throw new DomainTypeError({ deckList });
     }
 
-    this.commander = commanderQueryString;
+    this.commanderQueryString = commanderQueryString;
     this.deckList = deckList;
     this.pwd = process.env.PWD;
     this.now = dateFns.format(new Date(), "YYYY-MM-DDTHH_mm_ss");
@@ -30,10 +31,12 @@ export default class Reporter {
   }
 
   async create() {
-    const file = path.join(this.cwd, `${this.commander}-${this.now}.html`);
+    const file = path.join(this.cwd, `${this.commanderQueryString}-${this.now}.html`);
 
-    const html = await improveReportTemplate(this.commander, this.deckList);
+    const html = await improveReportTemplate(this.commanderQueryString, this.deckList);
     fs.appendFileSync(file, html);
+
+    logger.verbose(`report generated [ ${file} ]`);
 
     console.log(`file can be found in:\n\n-->  ${file}  <--\n`);
   }

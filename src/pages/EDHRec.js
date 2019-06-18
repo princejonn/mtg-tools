@@ -40,14 +40,10 @@ export default class EDHRec extends BasePage {
   async getSuggestedCards() {
     const array = [];
 
-    logger.verbose("getting suggested cards from EDHRec");
-
     const regexDecksPercent = /(\d+\%.*of)/;
     const regexDecksNumber = /(of.*)(\d+)(.*decks)/;
     const regexSynergy = /(\+|\-)(\d+)(\%.*synergy)/;
     const numbers = /\d+\.?\d*/;
-
-    logger.debug("locating cards");
 
     await this.page.waitForSelector(Selector.EdhRec.Card.ELEMENT);
     const cards = await this.page.$$(Selector.EdhRec.Card.ELEMENT);
@@ -88,6 +84,8 @@ export default class EDHRec extends BasePage {
 
       array.push(card);
     }
+
+    logger.debug(`found [ ${array.length} ] EDHRec cards`);
 
     return array;
   }

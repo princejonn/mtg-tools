@@ -19,7 +19,7 @@ export default class BasePage {
    * @returns {Promise<void>}
    */
   async goto({ url, waitForSelector }) {
-    logger.debug("going to url", url);
+    logger.silly(`going to url [ ${url} ]`);
     await this.page.goto(url);
     await this.page.waitForSelector(waitForSelector, { visible: true });
   }

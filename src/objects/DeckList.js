@@ -59,7 +59,7 @@ export default class DeckList {
    * @param {Array<Card>} cards
    */
   attach({ deckLink, cards }) {
-    if (cards.length > 100) return;
+    if (cards.length > 110) return;
     logger.debug("attaching cards into DeckList decks array");
     const { similarity, difference } = this._calculateSimilarity(cards);
     this.decks.push({ deckLink, similarity, difference });
@@ -124,7 +124,7 @@ export default class DeckList {
   _calculateSimilarity(comparisonCards) {
     const inDeckCards = [];
     const difference = [];
-    let similarity = 0;
+    let counter = 0;
 
     for (const card of this.list) {
       if (!card.isDeck) continue;
@@ -136,6 +136,16 @@ export default class DeckList {
     }
 
     for (const comparisonCard of comparisonCards) {
+      let basicLand = false;
+
+      for (const regex of this.rxBasicLand) {
+        if (comparisonCard.name.match(regex)) {
+          basicLand = true;
+        }
+      }
+
+      if (basicLand) continue;
+
       let isAlreadyInDeck = false;
 
       for (const inDeckCard of inDeckCards) {
@@ -145,13 +155,15 @@ export default class DeckList {
       }
 
       if (isAlreadyInDeck) {
-        similarity += 1;
+        counter += 1;
       }
 
       if (!isAlreadyInDeck) {
         difference.push(comparisonCard);
       }
     }
+
+    const similarity = Math.floor(((counter / comparisonCards.length) * 1000) / 10);
 
     return { similarity, difference };
   }
