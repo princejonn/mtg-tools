@@ -60,7 +60,7 @@ export default class EDHRec extends BasePage {
       const image = await this.getElementAttribute(imageElement, ElementAttribute.DATA_SRC);
 
       const inPercentOfDecks = desc.match(regexDecksPercent)[0];
-      const inPercentOfDecksDigits = inPercentOfDecks.match(numbers)[0];
+      const inPercentOfDecksDigits = parseInt(inPercentOfDecks.match(numbers)[0], 10);
       const inPercentOfDecksFloat = parseFloat(`0.${inPercentOfDecksDigits}`);
 
       const inAmountOfDecks = desc.match(regexDecksNumber)[0].match(numbers)[0];
@@ -80,6 +80,7 @@ export default class EDHRec extends BasePage {
 
       card.setEDHRec();
       card.setEDHRecAmount(amount);
+      card.setEDHRecPercent(inPercentOfDecksDigits);
       card.setEDHRecSynergy(synergy);
 
       logger.silly("adding EDHRec card", card.name);

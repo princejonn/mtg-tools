@@ -7,6 +7,7 @@ export default class DeckList {
   constructor() {
     this.list = [];
     this.decks = [];
+    this.joinedDecks = 0;
     this.rxBasicLand = [
       /((.*)(Plains)(.*))/,
       /((.*)(Swamp)(.*))/,
@@ -21,6 +22,7 @@ export default class DeckList {
    */
   join(array) {
     logger.debug("joining array into DeckList");
+    this.joinedDecks += 1;
     for (const card of array) {
       this.add(card);
     }
@@ -43,6 +45,7 @@ export default class DeckList {
 
       if (card.isEDHRec) {
         listCard.setEDHRecAmount(card.edhRecAmount);
+        listCard.setEDHRecPercent(card.edhRecPercent);
         listCard.setEDHRecSynergy(card.synergy);
       }
 
@@ -69,21 +72,22 @@ export default class DeckList {
    * @returns {Promise<Array<Card>>}
    */
   async getEDHRecSuggestions() {
-    return this._getCardsFromList(false, "edhRecAmount", SortBy.DESC, 16);
+    return this._getCardsFromList(false, "edhRecPercent", SortBy.DESC, 24);
   }
 
   /**
    * @returns {Promise<Array<Card>>}
    */
   async getTappedOutSuggestions() {
-    return this._getCardsFromList(false, "tappedOutAmount", SortBy.DESC, 16);
+    this._setCardsTappedOutPercent();
+    return this._getCardsFromList(false, "tappedOutPercent", SortBy.DESC, 24);
   }
 
   /**
    * @returns {Promise<Array<Card>>}
    */
   async getLeastUsedCardsInDeck() {
-    return this._getCardsFromList(true, "tappedOutAmount", SortBy.ASC, 16);
+    return this._getCardsFromList(true, "tappedOutPercent", SortBy.ASC, 24);
   }
 
   /**
@@ -98,8 +102,10 @@ export default class DeckList {
         if (card.isSame(deckCard)) {
           card.setImage(deckCard.image);
           card.setEDHRecAmount(deckCard.edhRecAmount);
+          card.setEDHRecPercent(deckCard.edhRecPercent);
           card.setEDHRecSynergy(deckCard.synergy);
           card.setTappedOutAmount(deckCard.tappedOutAmount);
+          card.setTappedOutPercent(deckCard.tappedOutPercent);
         }
       }
 
@@ -179,6 +185,8 @@ export default class DeckList {
   async _getCardsFromList(inDeck, property, sortBy, maximum = 16) {
     const pickedCards = [];
     for (const card of this.list) {
+      const percent = Math.floor((card.tappedOutAmount / this.joinedDecks) * 1000) / 10;
+      card.setTappedOutPercent(percent);
       if (!card.isDeck && inDeck) continue;
       if (card.isDeck && !inDeck) continue;
       if (card.synergy <= -1) continue;
@@ -202,5 +210,15 @@ export default class DeckList {
     }
 
     return returningCards;
+  }
+
+  /**
+   * @private
+   */
+  _setCardsTappedOutPercent() {
+    for (const card of this.list) {
+      const percent = Math.floor((card.tappedOutAmount / this.joinedDecks) * 1000) / 10;
+      card.setTappedOutPercent(percent);
+    }
   }
 }

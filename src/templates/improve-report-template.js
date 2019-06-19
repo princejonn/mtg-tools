@@ -2,9 +2,12 @@ const getCardHTML = card => {
   return (`<div class="card-container">
     <div class="card-image"><img class="card-image-img" src="${card.image}" alt="${card.name}"/></div>
     <div class="card-data">
-        <div class="card-data-col">TappedOut <span>${card.tappedOutAmount}</span></div>
-        <div class="card-data-col">EDHRec <span>${card.edhRecAmount}</span></div>
-        <div class="card-data-col">Synergy <span>${card.synergy}%</span></div>
+        <div class="card-data-col">TappedOut <span>${card.tappedOutPercent}%</span></div>
+        <div class="card-data-col">EDHRec <span>${card.edhRecPercent}%</span></div>
+    </div>
+    <div class="card-data">
+        <div class="card-data-col">TappedOut #<span>${card.tappedOutAmount}</span></div>
+        <div class="card-data-col">EDHRec #<span>${card.edhRecAmount}</span></div>
     </div>
 </div>`);
 };

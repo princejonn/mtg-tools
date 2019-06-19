@@ -14,7 +14,9 @@ export default class Card {
     this.name = name;
     this.image = null;
     this.tappedOutAmount = 0;
+    this.tappedOutPercent = 0;
     this.edhRecAmount = 0;
+    this.edhRecPercent = 0;
     this.synergy = 0;
 
     this.isDeck = false;
@@ -53,6 +55,13 @@ export default class Card {
   }
 
   /**
+   * @param {number} percent
+   */
+  setEDHRecPercent(percent) {
+    this.edhRecPercent = percent;
+  }
+
+  /**
    * @param {number} [synergy]
    */
   setEDHRecSynergy(synergy = 0) {
@@ -77,6 +86,13 @@ export default class Card {
    */
   setTappedOutAmount(amount) {
     this.tappedOutAmount = amount;
+  }
+
+  /**
+   * @param {number} percent
+   */
+  setTappedOutPercent(percent) {
+    this.tappedOutPercent = percent;
   }
 
   /**
