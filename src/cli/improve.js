@@ -8,8 +8,9 @@ import Improve from "components/Improve";
     const argv = process.argv.slice(2);
     const username = process.env.TAPPEDOUT_USERNAME;
     const password = process.env.TAPPEDOUT_PASSWORD;
-    const improve = new Improve(argv[0], username, password);
-    await improve.run();
+    console.log("under construction");
+    //const improve = new Improve(argv[0], username, password);
+    //await improve.run();
   } catch (err) {
     logger.error(err);
   } finally {

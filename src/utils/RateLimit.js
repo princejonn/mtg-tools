@@ -1,14 +1,14 @@
 export default class RateLimit {
   static async edhRec() {
-    await RateLimit.delay(333);
+    await RateLimit.delay(300);
   }
 
   static async scryfall() {
-    await RateLimit.delay(111);
+    await RateLimit.delay(200);
   }
 
   static async tappedOut() {
-    await RateLimit.delay(333);
+    await RateLimit.delay(300);
   }
 
   static async delay(milliseconds) {

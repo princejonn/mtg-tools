@@ -3,7 +3,7 @@ export default {
     Card: {
       ELEMENT: "div#cardlists div.nw",
       NAME: "div.nwname",
-      DESC: "div.nwdesc",
+      DESCENDING: "div.nwdesc",
       IMAGE: "img",
     },
   },

@@ -2,11 +2,11 @@ import readline from "readline";
 import { includes, isNumber, isString } from "lodash";
 import logger from "logger";
 import BasePage from "pages/BasePage";
-import Card from "objects/Card";
+import Card from "objects/DeckCard";
 import ElementAttribute from "enums/ElementAttribute";
 import Selector from "enums/Selector";
 import DomainTypeError from "errors/DomainTypeError";
-import RateLimit from "components/RateLimit";
+import RateLimit from "utils/RateLimit";
 
 export default class EDHRec extends BasePage {
   /**
@@ -209,7 +209,7 @@ export default class EDHRec extends BasePage {
       output: process.stdout,
     });
 
-    return new Promise(resolve => rl.question(`${question}\nAnswer: `, answer => {
+    return new Promise(resolve => rl.question(`answer: `, answer => {
       rl.close();
       resolve(answer);
     }));

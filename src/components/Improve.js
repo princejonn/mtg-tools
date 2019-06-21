@@ -1,6 +1,6 @@
 import { includes } from "lodash";
 import logger from "logger";
-import PuppeteerManager from "components/PuppeteerManager";
+import PuppeteerManager from "utils/PuppeteerManager";
 import Reporter from "components/Reporter";
 import Selector from "enums/Selector";
 import DomainTypeError from "errors/DomainTypeError";

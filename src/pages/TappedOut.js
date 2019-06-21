@@ -1,11 +1,11 @@
 import _ from "lodash";
 import logger from "logger";
-import Card from "objects/Card";
+import Card from "objects/DeckCard";
 import BasePage from "pages/BasePage";
 import ElementAttribute from "enums/ElementAttribute";
 import Selector from "enums/Selector";
 import DomainTypeError from "errors/DomainTypeError";
-import RateLimit from "components/RateLimit";
+import RateLimit from "utils/RateLimit";
 
 export default class TappedOut extends BasePage {
   constructor(page) {
