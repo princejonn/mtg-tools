@@ -33,15 +33,68 @@ export default class Card {
 
     this.uri = data.scryfall_uri;
 
+    this.exists = {
+      commander: false,
+      edhRec: false,
+      tappedOut: false,
+    };
     this.edhRec = {
-      amount: data.edhRec && data.edhRec.amount || 0,
-      percent: data.edhRec && data.edhRec.percent || 0,
-      synergy: data.edhRec && data.edhRec.synergy || 0,
+      amount: 0,
+      percent: 0,
+      synergy: 0,
     };
-
     this.tappedOut = {
-      amount: data.tappedOut && data.tappedOut.amount || 0,
-      percent: data.tappedOut && data.tappedOut.percent || 0,
+      amount: 0,
+      percent: 0,
     };
+  }
+
+  /**
+   */
+  setCommander() {
+    this.exists.commander = true;
+  }
+
+  /**
+   * @param {{amount: number, percent: number, synergy: number}} data
+   */
+  setEdhRec(data) {
+    if (!data) {
+      throw new Error("trying to set edhRec data with no data");
+    }
+
+    this.exists.edhRec = true;
+
+    this.edhRec.amount = data.amount || this.edhRec.amount;
+    this.edhRec.percent = data.percent || this.edhRec.percent;
+    this.edhRec.synergy = data.synergy || this.edhRec.synergy;
+  }
+
+  /**
+   * @param {{amount: number, percent: number}} data
+   */
+  setTappedOut(data) {
+    if (!data) {
+      throw new Error("trying to set tappedOut data with no data");
+    }
+
+    this.exists.tappedOut = true;
+
+    this.tappedOut.amount = data.amount || this.tappedOut.amount;
+    this.tappedOut.percent = data.percent || this.tappedOut.percent;
+  }
+
+  /**
+   * @param {number} amount
+   */
+  addTappedOutAmount(amount = 1) {
+    this.tappedOut.amount += amount;
+  }
+
+  /**
+   * @param {number} addedDecks
+   */
+  calculatePercent(addedDecks) {
+    this.tappedOut.percent = ((this.tappedOut.amount / addedDecks) * 1000) / 10;
   }
 }

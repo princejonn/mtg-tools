@@ -51,7 +51,7 @@ export default class ScryfallService {
     const timeout = new CacheTimeout({ years: 1 });
     const db = new LowDB(Table.SCRYFALL_CARDS);
 
-    const cached = db.find({ name });
+    let cached = db.find({ name });
     let data = {};
 
     if (cached && timeout.isOK(cached.created)) {
@@ -100,14 +100,6 @@ export default class ScryfallService {
 
     for (const item of parsed.data) {
       if (item.name !== name) continue;
-      return item;
-    }
-
-    logger.debug("unable to find exact match. trying fuzzy match.");
-
-    for (const item of parsed.data) {
-      const fuzzy = item.name.replace(/\s+\/\/.*/, "");
-      if (fuzzy !== name) continue;
       return item;
     }
 

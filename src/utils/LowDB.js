@@ -62,7 +62,7 @@ export default class LowDB {
    */
   push(data) {
     if (!!this.find({ id: data.id })) {
-      throw new Error("a post with this id already exists");
+      throw new Error(`a post with this id already exists: [ ${data.id} ]`);
     }
     this._db.get(this._table)
       .push({
@@ -85,7 +85,7 @@ export default class LowDB {
       throw new Error("data is undefined");
     }
     if (!this.find({ id: data.id })) {
-      throw new Error("id could not be found in the database table");
+      throw new Error(`id could not be found in the database table: [ ${data.id} ]`);
     }
     this._db.get(this._table)
       .find(query)
@@ -104,7 +104,7 @@ export default class LowDB {
       throw new Error("id is undefined");
     }
     if (!this.find({ id })) {
-      throw new Error("id could not be found in the database table");
+      throw new Error(`id could not be found in the database table: [ ${id} ]`);
     }
     this._db.get(this._table)
       .remove({ id })

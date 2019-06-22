@@ -56,7 +56,8 @@ export default class EDHRecService {
     const cached = db.find({ url: theme.url });
 
     if (cached && timeout.isOK(cached.created)) {
-      return new EDHRecRecommendation(cached);
+      const rec = await EDHRecService._buildRecFromCache(cached);
+      return new EDHRecRecommendation(rec);
     } else if (cached && !timeout.isOK(cached.created)) {
       logger.debug("found commander recommendation in database with expired timeout", theme.url);
       db.remove(cache.id);
@@ -67,7 +68,7 @@ export default class EDHRecService {
     const manager = new PuppeteerManager();
     await manager.init();
     const data = await EDHRecService._buildRecommendation(manager, theme);
-    db.push(data);
+    await EDHRecService._saveRecommendationToDb(db, data);
     manager.destroy();
 
     return new EDHRecRecommendation(data);
@@ -119,7 +120,7 @@ export default class EDHRecService {
   /**
    * @param {PuppeteerManager} manager
    * @param {EDHRecTheme} theme
-   * @returns {Promise<{id: string, url: string, cards: Array<{id: string, name: string, amount, synergy, percent}>}>}
+   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
    * @private
    */
   static async _buildRecommendation(manager, theme) {
@@ -170,10 +171,48 @@ export default class EDHRecService {
       const { name, edhRec } = item;
       const card = await ScryfallService.findCard(name);
       if (!card) continue;
-      const { id } = card;
-      cards.push({ id, edhRec });
+      card.setEdhRec(edhRec);
+      cards.push(card);
     }
 
     return { id: uuid, url: theme.url, cards };
+  }
+
+  /**
+   * @param {LowDB} db
+   * @param {{id: string, url: string, cards: Array<Card>}} data
+   * @returns {Promise<void>}
+   * @private
+   */
+  static async _saveRecommendationToDb(db, data) {
+    const { id, url } = data;
+    const cards = [];
+
+    for (const card of data.cards) {
+      const { id, edhRec } = card;
+      cards.push({ id, edhRec });
+    }
+
+    db.push({ id, url, cards });
+  }
+
+  /**
+   * @param {{id: string, url: string, cards: Array<{id: string, edhRec: object}>}} data
+   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
+   * @private
+   */
+  static async _buildRecFromCache(data) {
+    const { id, url } = data;
+    const cards = [];
+
+    for (const item of data.cards) {
+      const { id, edhRec } = item;
+      const card = await ScryfallService.getCard(id);
+      if (!card) continue;
+      card.setEdhRec(edhRec);
+      cards.push(card);
+    }
+
+    return { id, url, cards };
   }
 }

@@ -1,38 +1,29 @@
-import { find } from "lodash";
+import { filter, find } from "lodash";
 import logger from "logger";
 import ArraySort, { SortBy } from "utils/ArraySort";
 import TappedOutDeck from "./TappedOutDeck";
 
 export default class CommanderDeck {
-  constructor() {
-    this.deck = {
-      cards: [],
-    };
-    this.edhRec = {
-      cards: [],
-    };
+  /**
+   * @param {TappedOutDeck} tappedOutDeck
+   */
+  constructor(tappedOutDeck) {
+    this.cards = tappedOutDeck.cards;
+    this.length = tappedOutDeck.cards.length;
     this.tappedOut = {
-      cards: [],
       decks: [],
-      added: 0,
+      added: 1,
     };
-  }
 
-  /**
-   * @param {TappedOutDeck} tappedOutDeck
-   */
-  addCommanderDeck(tappedOutDeck) {
-    if (this.deck.cards.length) {
-      throw new Error("you can only use addCommanderDeck once");
+    for (const card of this.cards) {
+      card.setCommander();
     }
-
-    this.deck = tappedOutDeck;
   }
 
   /**
    * @param {TappedOutDeck} tappedOutDeck
    */
-  addTappedOutDeck(tappedOutDeck) {
+  addDeck(tappedOutDeck) {
     for (const deck of this.tappedOut.decks) {
       if (tappedOutDeck.url !== deck.url) continue;
       throw new Error("you can only add a unique tappedOutDeck once");
@@ -40,47 +31,22 @@ export default class CommanderDeck {
 
     this.tappedOut.added += 1;
     let similarity = 0;
-
     const { cards } = tappedOutDeck;
 
-    logger.silly("adding new unique cards to tappedOut.cards");
     for (const card of cards) {
-      const existing = find(this.tappedOut.cards, { id: card.id });
-      if (existing) continue;
-      this.tappedOut.cards.push(card);
-    }
-
-    logger.silly("adding similarity to this.deck");
-    for (const card of cards) {
-      const existing = find(this.deck.cards, { id: card.id });
-      if (!existing) continue;
-      similarity += 1;
-    }
-
-    logger.silly("calculating amount & percent on tappedOut.cards that exist in this tappedOutDeck");
-    for (const card of this.tappedOut.cards) {
-      const addedCard = find(cards, { id: card.id });
-      if (!addedCard) continue;
-      card.tappedOut.amount = card.tappedOut.amount + addedCard.tappedOut.amount;
-      card.tappedOut.percent = ((card.tappedOut.amount / this.tappedOut.added) * 1000) / 10;
-    }
-
-    logger.silly("copying tappedOut object to all cards in this.deck");
-    for (const card of this.deck.cards) {
-      const existing = find(this.tappedOut.cards, { id: card.id });
-      if (!existing) continue;
-      card.tappedOut = existing.tappedOut;
-    }
-
-    logger.silly("copying tappedOut object to all cards in this.edhRec");
-    for (const card of this.edhRec.cards) {
-      const existing = find(this.tappedOut.cards, { id: card.id });
-      if (!existing) continue;
-      card.tappedOut = existing.edhRec;
+      const existing = find(this.cards, { id: card.id });
+      if (existing) {
+        existing.addTappedOutAmount(card.tappedOut.amount);
+        existing.calculatePercent(this.tappedOut.added);
+        similarity += 1;
+      } else {
+        card.calculatePercent(this.tappedOut.added);
+        this.cards.push(card);
+      }
     }
 
     logger.silly("calculating similarity to this.deck");
-    tappedOutDeck.similarity = ((similarity / this.deck.cards.length) * 1000) / 10;
+    tappedOutDeck.similarity = ((similarity / this.length) * 1000) / 10;
 
     this.tappedOut.decks.push(tappedOutDeck);
   }
@@ -88,25 +54,16 @@ export default class CommanderDeck {
   /**
    * @param {EDHRecRecommendation} edhRecRecommendation
    */
-  addEDHRecRecommendation(edhRecRecommendation) {
-    if (this.edhRec.cards.length) {
-      throw new Error("you can only use addEDHRecRecommendation once");
-    }
+  addRecommendation(edhRecRecommendation) {
+    const { cards } = edhRecRecommendation;
 
-    this.edhRec = edhRecRecommendation;
-
-    logger.silly("copying edhRec object to all cards in this.deck");
-    for (const card of this.deck.cards) {
-      const existing = find(this.edhRec.cards, { id: card.id });
-      if (!existing) continue;
-      card.edhRec = existing.edhRec;
-    }
-
-    logger.silly("copying edhRec object to all cards in this.tappedOut");
-    for (const card of this.tappedOut.cards) {
-      const existing = find(this.edhRec.cards, { id: card.id });
-      if (!existing) continue;
-      card.edhRec = existing.edhRec;
+    for (const card of cards) {
+      const existing = find(this.cards, { id: card.id });
+      if (existing) {
+        existing.setEdhRec(card.edhRec);
+      } else {
+        this.cards.push(card);
+      }
     }
   }
 
@@ -114,53 +71,57 @@ export default class CommanderDeck {
    * @returns {Array<Card>}
    */
   getMostRecommendedCards() {
-    const cards = [];
-    const sortedArray = ArraySort.sortProperty(this.edhRec.cards, "edhRec.percent", SortBy.DESCENDING);
-
-    for (const card of sortedArray) {
-      if (find(this.deck.cards, { id: card.id })) continue;
-      cards.push(card);
-    }
-
-    return cards;
+    const cards = filter(this.cards, {
+      exists: {
+        commander: false,
+        edhRec: true,
+      },
+    });
+    return ArraySort.sortProperty(cards, "edhRec.percent", SortBy.DESCENDING);
   }
 
   /**
    * @returns {Array<Card>}
    */
   getMostPopularCards() {
-    const cards = [];
-    const sortedArray = ArraySort.sortProperty(this.tappedOut.cards, "tappedOut.percent", SortBy.DESCENDING);
-
-    for (const card of sortedArray) {
-      if (find(this.deck.cards, { id: card.id })) continue;
-      cards.push(card);
-    }
-
-    return cards;
+    const cards = filter(this.cards, {
+      exists: {
+        commander: false,
+        tappedOut: true,
+      },
+    });
+    return ArraySort.sortProperty(cards, "tappedOut.percent", SortBy.DESCENDING);
   }
 
   /**
    * @returns {TappedOutDeck}
    */
   getMostSimilarDeck() {
-    const cards = [];
     const decks = ArraySort.sortProperty(this.tappedOut.decks, "similarity", SortBy.DESCENDING);
     const deck = decks[0];
-    const sortedArray = ArraySort.sortProperty(deck.cards, "tappedOut.percent", SortBy.DESCENDING);
+    const { id, url, similarity } = deck;
 
-    for (const card of sortedArray) {
-      if (find(this.deck.cards, { id: card.id })) continue;
-      cards.push(card);
+    for (const card of deck.cards) {
+      const exists = find(this.cards, { id: card.id });
+      if (!exists) continue;
+      card.setEdhRec(exists.edhRec);
+      card.setTappedOut(exists.tappedOut);
     }
 
-    return new TappedOutDeck({ ...deck, cards });
+    const sortedArray = ArraySort.sortProperty(deck.cards, "tappedOut.percent", SortBy.DESCENDING);
+    const cards = filter(sortedArray, {
+      exists: {
+        commander: false,
+      },
+    });
+
+    return new TappedOutDeck({ id, url, similarity, cards });
   }
 
   /**
    * @returns {Array<Card>}
    */
   getLeastPopularCardsInDeck() {
-    return ArraySort.sortProperty(this.deck.cards, "tappedOut.percent", SortBy.ASCENDING);
+    return ArraySort.sortProperty(this.cards, "tappedOut.percent", SortBy.ASCENDING);
   }
 }

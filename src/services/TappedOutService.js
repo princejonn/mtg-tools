@@ -17,9 +17,11 @@ const Selector = {
   LOGGED_IN: "div.tabbable ul.nav li.active",
   COMMANDER: "ul.boardlist > a",
   COMMANDER_NAME: ".well-jumbotron h1",
-  CARD_LIST: "div.well div.board-container",
-  CARD: "ul.boardlist > li.member > a.board",
   DECK_LINK: "h3.deck-wide-header a",
+  CARD_LIST: "div.well div.board-container",
+  MEMBER: "ul.boardlist > li.member",
+  CARD: "a.board",
+  CARD_LINK: "span > a",
 };
 
 export default class TappedOutService {
@@ -98,14 +100,15 @@ export default class TappedOutService {
    * @param {string} url
    * @returns {Promise<TappedOutDeck>}
    */
-  static async getSimilarDeck(url) {
+  static async getDeck(url) {
     const timeout = new CacheTimeout({ days: 7 });
     const db = new LowDB(Table.TAPPED_OUT_DECKS);
 
     const cached = db.find({ url });
 
     if (cached && timeout.isOK(cached.created)) {
-      return new TappedOutDeck(cached);
+      const deck = await TappedOutService._buildDeckFromCached(cached);
+      return new TappedOutDeck(deck);
     } else if (cached && !timeout.isOK(cached.created)) {
       logger.debug("found deck in database with expired timeout", url);
       db.remove(cached.id);
@@ -116,7 +119,7 @@ export default class TappedOutService {
     const manager = new PuppeteerManager();
     await manager.init();
     const data = await TappedOutService._buildDeck(manager, url);
-    db.push(data);
+    await TappedOutService._saveDeckToDb(db, data);
     manager.destroy();
 
     return new TappedOutDeck(data);
@@ -133,7 +136,6 @@ export default class TappedOutService {
     logger.debug("finding commander");
 
     const uuid = uuidv4();
-
     await TappedOutService._login(manager, account);
 
     await manager.goto({
@@ -199,7 +201,7 @@ export default class TappedOutService {
   /**
    * @param {PuppeteerManager} manager
    * @param {string} url
-   * @returns {Promise<{id: string, url: string, cards: Array<{id: string, amount: number}>}>}
+   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
    * @private
    */
   static async _buildDeck(manager, url) {
@@ -217,11 +219,22 @@ export default class TappedOutService {
 
     const parents = await manager.page.$$(Selector.CARD_LIST);
     const mainBoard = parents[0];
-    const elements = await mainBoard.$$(Selector.CARD);
+    const members = await mainBoard.$$(Selector.MEMBER);
 
-    for (const element of elements) {
-      const name = await manager.getElementAttribute(element, "data-name");
-      const amount = await manager.getElementAttribute(element, "data-qty");
+    for (const member of members) {
+      const cardElement = await member.$(Selector.CARD);
+      let name = await manager.getElementAttribute(cardElement, "data-name");
+      let amount = await manager.getElementAttribute(cardElement, "data-qty");
+      amount = parseInt(amount, 10);
+
+      const flip = await member.$$(Selector.CARD_LINK);
+
+      if (flip.length > 1) {
+        const flipLink = flip[1];
+        const flipName = await manager.getElementAttribute(flipLink, "data-name");
+        name = `${name} // ${flipName}`;
+      }
+
       array.push({ name, tappedOut: { amount } });
     }
 
@@ -229,10 +242,9 @@ export default class TappedOutService {
       const { name, tappedOut } = item;
       const card = await ScryfallService.findCard(name);
       if (!card) continue;
-      const { id } = card;
-      cards.push({ id, tappedOut });
+      card.setTappedOut(tappedOut);
+      cards.push(card);
     }
-
     return { id: uuid, url, cards };
   }
 
@@ -253,5 +265,43 @@ export default class TappedOutService {
     await manager.page.click(Selector.SUBMIT);
     logger.debug("verifying if login was successful");
     await manager.page.waitForSelector(Selector.LOGGED_IN, { visible: true });
+  }
+
+  /**
+   * @param {LowDB} db
+   * @param {{id: string, url: string, cards: Array<Card>}} data
+   * @returns {Promise<void>}
+   * @private
+   */
+  static async _saveDeckToDb(db, data) {
+    const { id, url } = data;
+    const cards = [];
+
+    for (const card of data.cards) {
+      const { id, tappedOut } = card;
+      cards.push({ id, tappedOut });
+    }
+
+    db.push({ id, url, cards });
+  }
+
+  /**
+   * @param {{id: string, url: string, cards: Array<{id: string, tappedOut: object}>}} data
+   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
+   * @private
+   */
+  static async _buildDeckFromCached(data) {
+    const { id, url } = data;
+    const cards = [];
+
+    for (const item of data.cards) {
+      const { id, tappedOut } = item;
+      const card = await ScryfallService.getCard(id);
+      if (!card) continue;
+      card.setTappedOut(tappedOut);
+      cards.push(card);
+    }
+
+    return { id, url, cards };
   }
 }

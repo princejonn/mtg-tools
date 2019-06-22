@@ -1,8 +1,8 @@
-
 const dotenv = require("dotenv");
 const _ = require("lodash");
 const ArraySort = require("./lib/utils/ArraySort");
 const TappedOutAccount = require("./lib/models/TappedOutAccount");
+const CommanderDeck = require("./lib/models/CommanderDeck");
 const EDHRecTheme = require("./lib/models/EDHRecTheme");
 const TappedOutService = require("./lib/services/TappedOutService");
 const EDHRecService = require("./lib/services/EDHRecService");
@@ -16,17 +16,19 @@ const ReadLineService = require("./lib/services/ReadLineService");
     const account = new TappedOutAccount(process.env.TAPPEDOUT_USERNAME, process.env.TAPPEDOUT_PASSWORD);
 
     const commander = await TappedOutService.getCommander(cmdrUrl, account);
-    //const deck1 = await TappedOutService.getCommanderDeck(commander, account);
-    //const links = await TappedOutService.getSimilarLinks(commander);
-    //const deck2 = await TappedOutService.getSimilarDeck("https://tappedout.net/mtg-decks/precon-vela-gang-leader-rogues-ninjas/");
+    const commanderDeck = await TappedOutService.getCommanderDeck(commander, account);
+    const linkList = await TappedOutService.getSimilarLinks(commander);
+    const similarDeck = await TappedOutService.getDeck(linkList.links[0]);
+
     const themeList = await EDHRecService.getThemes(commander);
     const theme = new EDHRecTheme(themeList.themes[0]);
-    //const recommendation = await EDHRecService.getRecommendation(theme);
+    const recommendation = await EDHRecService.getRecommendation(theme);
 
-    const selectedTheme = await ReadLineService.selectTheme(themeList);
+    const deck = new CommanderDeck(commanderDeck);
+    deck.addDeck(similarDeck);
+    deck.addRecommendation(recommendation);
 
-    console.log(selectedTheme);
-
+    console.log(deck.getMostPopularCards());
   } catch (err) {
     console.log(err);
   } finally {
