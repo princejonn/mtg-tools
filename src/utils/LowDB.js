@@ -61,14 +61,13 @@ export default class LowDB {
    * @param {object} data
    */
   push(data) {
-    if (!!this.find({ id: data.id })) {
+    if (this.find({ id: data.id })) {
       throw new Error(`a post with this id already exists: [ ${data.id} ]`);
     }
     this._db.get(this._table)
       .push({
         ...data,
         created: DateFns.now(),
-        updated: DateFns.now(),
       })
       .write();
   }
@@ -89,10 +88,7 @@ export default class LowDB {
     }
     this._db.get(this._table)
       .find(query)
-      .assign({
-        ...data,
-        updated: DateFns.now(),
-      })
+      .assign(data)
       .write();
   }
 

@@ -1,5 +1,4 @@
 import _ from "lodash";
-import DomainTypeError from "errors/DomainTypeError";
 
 export const SortBy = {
   ASCENDING: "ASC",
@@ -15,13 +14,13 @@ export default class ArraySort {
    */
   static sortProperty(array, path, ascDesc) {
     if (!_.isArray(array)) {
-      throw new DomainTypeError({ array });
+      throw new Error("array is undefined");
     }
     if (!_.isString(path)) {
-      throw new DomainTypeError({ path });
+      throw new Error("path is undefined");
     }
     if (ascDesc !== SortBy.ASCENDING && ascDesc !== SortBy.DESCENDING) {
-      throw new DomainTypeError({ ascDesc });
+      throw new Error("ascDesc is undefined");
     }
 
     const compare = (a, b) => {

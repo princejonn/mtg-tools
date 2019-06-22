@@ -2,9 +2,6 @@ import { includes } from "lodash";
 import uuidv4 from "uuid/v4";
 import logger from "logger";
 import PuppeteerManager from "utils/PuppeteerManager";
-import EDHRecTheme from "models/EDHRecTheme";
-import EDHRecThemeList from "models/EDHRecThemeList";
-import EDHRecRecommendation from "models/EDHRecRecommendation";
 import ScryfallService from "services/ScryfallService";
 import CacheTimeout from "utils/CacheTimeout";
 import LowDB, { Table } from "utils/LowDB";
@@ -28,10 +25,10 @@ export default class EDHRecService {
     const cached = db.find({ commander: commander.name });
 
     if (cached && timeout.isOK(cached.created)) {
-      return new EDHRecThemeList(cached);
-    } else if (cached && !timeout.isOK(cached.created)) {
+      return cached;
+    } if (cached && !timeout.isOK(cached.created)) {
       logger.debug("found themes in database with expired timeout", commander.name);
-      db.remove(cache.id);
+      db.remove(cached.id);
     }
 
     logger.debug("searching for themes on edhrec", commander.name);
@@ -42,7 +39,7 @@ export default class EDHRecService {
     db.push(data);
     manager.destroy();
 
-    return new EDHRecThemeList(data);
+    return data;
   }
 
   /**
@@ -57,10 +54,10 @@ export default class EDHRecService {
 
     if (cached && timeout.isOK(cached.created)) {
       const rec = await EDHRecService._buildRecFromCache(cached);
-      return new EDHRecRecommendation(rec);
-    } else if (cached && !timeout.isOK(cached.created)) {
+      return rec;
+    } if (cached && !timeout.isOK(cached.created)) {
       logger.debug("found commander recommendation in database with expired timeout", theme.url);
-      db.remove(cache.id);
+      db.remove(cached.id);
     }
 
     logger.debug("searching for commander recommendation on edhrec", theme.url);
@@ -71,7 +68,7 @@ export default class EDHRecService {
     await EDHRecService._saveRecommendationToDb(db, data);
     manager.destroy();
 
-    return new EDHRecRecommendation(data);
+    return data;
   }
 
   /**
@@ -93,11 +90,13 @@ export default class EDHRecService {
       waitForSelector: themeSelector,
     });
 
-    themes.push({ theme: "no theme/budget", url: commanderUrl, type: "none" });
+    let num = 0;
+    themes.push({ theme: "no theme/budget", url: commanderUrl, type: "none", num });
 
     const elements = await manager.page.$$(themeSelector);
     for (const element of elements) {
       const href = await manager.getElementAttribute(element, "href");
+
       let theme = await manager.getElementText(element);
       theme = theme.replace(/\s{2,}/g, "");
       theme = theme.replace(/\n/g, "");
@@ -107,11 +106,13 @@ export default class EDHRecService {
         url: `https://edhrec.com/commanders/${href}`,
       };
 
-      if (includes(href, "budget")) {
-        themes.push({ ...object, type: "budget" });
-      } else {
-        themes.push({ ...object, type: "theme" });
-      }
+      const type = includes(href, "budget")
+        ? "budget"
+        : "theme";
+
+      num += 1;
+
+      themes.push({ ...object, type, num });
     }
 
     return { id: uuid, commander: commander.name, themes };
@@ -171,7 +172,7 @@ export default class EDHRecService {
       const { name, edhRec } = item;
       const card = await ScryfallService.findCard(name);
       if (!card) continue;
-      card.setEdhRec(edhRec);
+      card.edhRec = edhRec;
       cards.push(card);
     }
 
@@ -188,9 +189,8 @@ export default class EDHRecService {
     const { id, url } = data;
     const cards = [];
 
-    for (const card of data.cards) {
-      const { id, edhRec } = card;
-      cards.push({ id, edhRec });
+    for (const item of data.cards) {
+      cards.push({ id: item.id, edhRec: item.edhRec });
     }
 
     db.push({ id, url, cards });
@@ -206,10 +206,9 @@ export default class EDHRecService {
     const cards = [];
 
     for (const item of data.cards) {
-      const { id, edhRec } = item;
-      const card = await ScryfallService.getCard(id);
+      const card = await ScryfallService.getCard(item.id);
       if (!card) continue;
-      card.setEdhRec(edhRec);
+      card.edhRec = item.edhRec;
       cards.push(card);
     }
 

@@ -4,10 +4,10 @@ import { find } from "lodash";
 export default class ReadLineService {
   /**
    * @param {EDHRecThemeList} themeList
-   * @returns {Promise<string>}
+   * @returns {Promise<EDHRecTheme>}
    */
   static async selectTheme(themeList) {
-    const { question, allowedAnswers } = await ReadLineService._buildQuestion(themeList);
+    const question = await ReadLineService._buildQuestion(themeList);
 
     let exitCondition = 10;
 
@@ -18,14 +18,14 @@ export default class ReadLineService {
 
       const answer = await ReadLineService._readLine();
       const number = parseInt(answer, 10);
-      const allowed = find(allowedAnswers, { num: number });
+      const allowed = find(themeList.themes, { num: number });
 
       if (!allowed) {
         console.log("\nError: answer is not in list\n");
         continue;
       }
 
-      return allowed.url;
+      return allowed;
     }
 
     throw new Error("could not answer correctly in 10 tries. exiting application.");
@@ -33,30 +33,28 @@ export default class ReadLineService {
 
   /**
    * @param {EDHRecThemeList} themeList
-   * @returns {Promise<{question: string, allowedAnswers: Array<{num: number, url: string}>}>}
+   * @returns {Promise<string>}
    * @private
    */
   static async _buildQuestion(themeList) {
+    const { themes } = themeList;
     let question = "Select a theme/budget if you want:\n";
-    let allowedAnswers = [];
-    let num = 0;
-    let length = 0;
+    let padLength = 0;
 
-    for (const item of themeList.themes) {
+    for (const item of themes) {
       const { theme } = item;
-      if (theme.length > length) {
-        length = theme.length;
+      const { length } = theme;
+      if (length > padLength) {
+        padLength = length;
       }
     }
 
-    for (const item of themeList.themes) {
-      const { theme, url, type } = item;
-      question += `  ${num.toString().padEnd(2)} : ${theme.padEnd(length + 2)} (${type})\n`;
-      allowedAnswers.push({ num, url });
-      num += 1;
+    for (const item of themes) {
+      const { theme, type, num } = item;
+      question += `  ${num.toString().padEnd(2)} : ${theme.padEnd(padLength + 2)} (${type})\n`;
     }
 
-    return { question, allowedAnswers };
+    return question;
   }
 
   /**
@@ -69,7 +67,7 @@ export default class ReadLineService {
       output: process.stdout,
     });
 
-    return new Promise(resolve => rl.question(`\nanswer: `, answer => {
+    return new Promise(resolve => rl.question("\nanswer: ", answer => {
       rl.close();
       resolve(answer);
     }));

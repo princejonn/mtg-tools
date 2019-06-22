@@ -11,6 +11,15 @@ export default class DateFns {
   }
 
   /**
+   * @param {Date} date
+   * @param {string} format
+   * @returns {string}
+   */
+  static format(date, format) {
+    return dateFns.format(date, format);
+  }
+
+  /**
    * @returns {Date}
    */
   static now() {

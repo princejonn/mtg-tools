@@ -1,5 +1,4 @@
 import puppeteer from "puppeteer";
-import logger from "logger";
 
 export default class PuppeteerManager {
   constructor() {
@@ -22,7 +21,6 @@ export default class PuppeteerManager {
    * @returns {Promise<void>}
    */
   async goto({ url, waitForSelector }) {
-    logger.silly("going to url", url);
     await this.page.goto(url);
     await this.page.waitForSelector(waitForSelector, { visible: true });
   }
@@ -33,7 +31,6 @@ export default class PuppeteerManager {
    * @returns {Promise<string>}
    */
   async getElementAttribute(element, attribute) {
-    logger.silly("returning element attribute", attribute);
     return this.page.evaluate((e, a) => {
       return e.getAttribute(a);
     }, element, attribute);
@@ -44,13 +41,12 @@ export default class PuppeteerManager {
    * @returns {Promise<string>}
    */
   async getElementText(element) {
-    logger.silly("returning element text");
     return this.page.evaluate(e => {
       return e.textContent;
     }, element);
   }
 
-  destroy() {
+  destroy() {
     this.browser.close();
   }
 }

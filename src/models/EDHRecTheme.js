@@ -3,5 +3,6 @@ export default class EDHRecTheme {
     this.theme = data.theme;
     this.url = data.url;
     this.type = data.type;
+    this.num = data.num;
   }
 }

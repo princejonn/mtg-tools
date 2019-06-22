@@ -1,84 +1,59 @@
 import { includes } from "lodash";
 import logger from "logger";
-import PuppeteerManager from "utils/PuppeteerManager";
-import Reporter from "components/Reporter";
-import Selector from "enums/Selector";
-import DomainTypeError from "errors/DomainTypeError";
-import DeckList from "objects/DeckList";
-import EDHRec from "pages/EDHRec";
-import TappedOut from "pages/TappedOut";
+import Commander from "models/Commander";
+import CommanderDeck from "models/CommanderDeck";
+import EDHRecRecommendation from "models/EDHRecRecommendation";
+import EDHRecTheme from "models/EDHRecTheme";
+import EDHRecThemeList from "models/EDHRecThemeList";
+import TappedOutAccount from "models/TappedOutAccount";
+import TappedOutDeck from "models/TappedOutDeck";
+import TappedOutLinkList from "models/TappedOutLinkList";
+import EDHRecService from "services/EDHRecService";
+import ReadLineService from "services/ReadLineService";
+import ReporterService from "services/ReporterService";
+import TappedOutService from "services/TappedOutService";
 
 export default class Improve {
   constructor(url, username, password) {
     if (!includes(url, "http")) {
-      throw new DomainTypeError({ url });
+      throw new Error("url is undefined");
     }
-
     this.url = url;
-    this.manager = new PuppeteerManager();
-
-    this.username = username;
-    this.password = password;
+    this.account = new TappedOutAccount(username, password);
   }
 
-  async run() {
-    console.log("Starting...\nThis will take ~5 minutes.\nYou will be asked to select EDHRec theme and budget.\n");
+  async main() {
+    logger.debug("getting commander");
+    const commander = new Commander(await TappedOutService.getCommander(this.url, this.account));
 
-    logger.verbose("started improve run");
-    const deckList = new DeckList();
-    await this.manager.init();
-    const tappedOut = new TappedOut(this.manager.page);
+    logger.debug("getting commander themes on EDHRec");
+    const themeList = new EDHRecThemeList(await EDHRecService.getThemes(commander));
 
-    logger.verbose(`login with username [ ${this.username} ]`);
-    await tappedOut.login(this.username, this.password);
-    await tappedOut.goto({
-      url: this.url,
-      waitForSelector: Selector.TappedOut.CARD,
-    });
+    logger.debug("awaiting input to select theme on EDHRec");
+    const theme = new EDHRecTheme(await ReadLineService.selectTheme(themeList));
 
-    logger.verbose("getting TappedOut commander query string");
-    await tappedOut.setCommanderQueryString();
-    this.commanderQueryString = await tappedOut.getCommanderQueryString();
+    logger.debug("getting recommendation from EDHRec");
+    const recommendation = new EDHRecRecommendation(await EDHRecService.getRecommendation(theme));
 
-    logger.verbose("adding TappedOut commander cards to DeckList");
-    const commanderCards = await tappedOut.getCards();
-    for (const card of commanderCards) {
-      card.setDeck();
-    }
-    deckList.join(commanderCards);
+    logger.debug("getting commander deck");
+    const coDeck = new TappedOutDeck(await TappedOutService.getCommanderDeck(commander, this.account));
 
-    logger.verbose("adding TappedOut similar decks cards to DeckList");
-    const similarDeckLinks = await tappedOut.getSimilarDeckLinks();
-    for (const deckLink of similarDeckLinks) {
-      try {
-        await tappedOut.goto({
-          url: deckLink,
-          waitForSelector: Selector.TappedOut.CARD,
-        });
-        const cards = await tappedOut.getCards();
-        deckList.attach({ deckLink, cards });
-        deckList.join(cards);
-      } catch (err) {
-        logger.warn(err);
-      }
+    logger.debug("creating commander deck");
+    const commanderDeck = new CommanderDeck(coDeck);
+
+    logger.debug("getting deck links from TappedOut");
+    const linkList = new TappedOutLinkList(await TappedOutService.getSimilarLinks(commander));
+
+    for (const link of linkList.links) {
+      const toDeck = new TappedOutDeck(await TappedOutService.getDeck(link));
+      logger.debug("adding deck", toDeck.url);
+      commanderDeck.addDeck(toDeck);
     }
 
-    logger.verbose("starting EDHRec");
-    const edhRec = new EDHRec(this.manager.page, this.commanderQueryString);
-    await edhRec.goto();
+    logger.debug("adding recommendation", recommendation.url);
+    commanderDeck.addRecommendation(recommendation);
 
-    logger.verbose("asking for EDHRec theme");
-    await edhRec.selectTheme();
-
-    logger.verbose("asking for EDHRec budget");
-    await edhRec.selectBudget();
-
-    logger.verbose("adding EDHRec cards to DeckList");
-    const edhRecCards = await edhRec.getSuggestedCards();
-    deckList.join(edhRecCards);
-
-    logger.verbose("creating report");
-    const reporter = new Reporter(this.commanderQueryString, deckList);
-    await reporter.create();
+    logger.debug("building report");
+    await ReporterService.buildImproveReport(commander, commanderDeck);
   }
 }
