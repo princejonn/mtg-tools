@@ -1,5 +1,4 @@
 import { includes } from "lodash";
-import logger from "logger";
 import Commander from "models/Commander";
 import CommanderDeck from "models/CommanderDeck";
 import EDHRecRecommendation from "models/EDHRecRecommendation";
@@ -23,37 +22,37 @@ export default class Improve {
   }
 
   async main() {
-    logger.debug("getting commander");
+    console.log("getting commander");
     const commander = new Commander(await TappedOutService.getCommander(this.url, this.account));
 
-    logger.debug("getting commander themes on EDHRec");
+    console.log("getting commander themes on EDHRec");
     const themeList = new EDHRecThemeList(await EDHRecService.getThemes(commander));
 
-    logger.debug("awaiting input to select theme on EDHRec");
+    console.log("awaiting input to select theme on EDHRec");
     const theme = new EDHRecTheme(await ReadLineService.selectTheme(themeList));
 
-    logger.debug("getting recommendation from EDHRec");
+    console.log("getting recommendation from EDHRec");
     const recommendation = new EDHRecRecommendation(await EDHRecService.getRecommendation(theme));
 
-    logger.debug("getting commander deck");
+    console.log("getting commander deck");
     const coDeck = new TappedOutDeck(await TappedOutService.getCommanderDeck(commander, this.account));
 
-    logger.debug("creating commander deck");
+    console.log("creating commander deck");
     const commanderDeck = new CommanderDeck(coDeck);
 
-    logger.debug("getting deck links from TappedOut");
+    console.log("getting deck links from TappedOut");
     const linkList = new TappedOutLinkList(await TappedOutService.getSimilarLinks(commander));
 
     for (const link of linkList.links) {
       const toDeck = new TappedOutDeck(await TappedOutService.getDeck(link));
-      logger.debug("adding deck", toDeck.url);
+      console.log("adding deck", toDeck.url);
       commanderDeck.addDeck(toDeck);
     }
 
-    logger.debug("adding recommendation", recommendation.url);
+    console.log("adding recommendation", recommendation.url);
     commanderDeck.addRecommendation(recommendation);
 
-    logger.debug("building report");
+    console.log("building report");
     await ReporterService.buildImproveReport(commander, commanderDeck);
   }
 }

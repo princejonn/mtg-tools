@@ -171,7 +171,7 @@ export default class ScryfallService {
 
     if (data.image_uris) {
       image = data.image_uris.normal;
-    } else if (data.card_faces && data.card_faces.length) {
+    } else if (data.card_faces && data.card_faces.length) {
       image = data.card_faces[0].image_uris.normal;
     }
 

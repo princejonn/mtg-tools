@@ -140,6 +140,7 @@ export default class CommanderDeck {
    */
   getLeastPopularCardsInDeck() {
     this.calculate();
-    return ArraySort.sortProperty(this.cards, "tappedOut.percent", SortBy.ASCENDING);
+    const cards = filter(this.cards, { isCommander: true });
+    return ArraySort.sortProperty(cards, "tappedOut.percent", SortBy.ASCENDING);
   }
 }

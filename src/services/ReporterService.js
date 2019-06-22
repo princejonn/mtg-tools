@@ -15,7 +15,7 @@ export default class ReporterService {
     const cwd = path.join(pwd, "reports");
     const now = DateFns.format(DateFns.get(), "YYYY-MM-DDTHH_mm_ss");
 
-    if (!fs.existsSync(cwd)) {
+    if (!fs.existsSync(cwd)) {
       fs.mkdirSync(cwd);
     }
 
