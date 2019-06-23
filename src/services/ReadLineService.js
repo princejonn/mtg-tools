@@ -1,5 +1,6 @@
 import readline from "readline";
 import { find } from "lodash";
+import EDHRecTheme from "models/EDHRecTheme";
 
 export default class ReadLineService {
   /**
@@ -25,7 +26,7 @@ export default class ReadLineService {
         continue;
       }
 
-      return allowed;
+      return new EDHRecTheme(allowed);
     }
 
     throw new Error("could not answer correctly in 10 tries. exiting application.");

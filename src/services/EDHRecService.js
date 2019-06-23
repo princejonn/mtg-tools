@@ -1,9 +1,11 @@
 import { includes } from "lodash";
 import uuidv4 from "uuid/v4";
-import PuppeteerManager from "utils/PuppeteerManager";
+import EDHRecThemeList from "models/EDHRecThemeList";
+import EDHRecRecommendation from "models/EDHRecRecommendation";
 import ScryfallService from "services/ScryfallService";
 import CacheTimeout from "utils/CacheTimeout";
 import LowDB, { Table } from "utils/LowDB";
+import PuppeteerManager from "utils/PuppeteerManager";
 import RateLimit from "utils/RateLimit";
 
 const Selector = {
@@ -15,9 +17,9 @@ const Selector = {
 export default class EDHRecService {
   /**
    * @param {Commander} commander
-   * @returns {Promise<{id: string, commander: string, themes: Array<{theme: string, link: string, type: string}>}>}
+   * @returns {Promise<EDHRecThemeList>}
    */
-  static async getThemes(commander) {
+  static async getThemeList(commander) {
     const timeout = new CacheTimeout({ days: 14 });
     const db = new LowDB(Table.EDHREC_THEMES);
 
@@ -25,7 +27,7 @@ export default class EDHRecService {
 
     if (cached && timeout.isOK(cached.created)) {
       console.log("getting themes for commander:", commander.name);
-      return cached;
+      return new EDHRecThemeList(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found themes in database with expired timeout:", commander.name);
       db.remove(cached.id);
@@ -39,12 +41,12 @@ export default class EDHRecService {
     db.push(data);
     manager.destroy();
 
-    return data;
+    return new EDHRecThemeList(data);
   }
 
   /**
    * @param {EDHRecTheme} theme
-   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
+   * @returns {Promise<EDHRecRecommendation>}
    */
   static async getRecommendation(theme) {
     const timeout = new CacheTimeout({ days: 14 });
@@ -68,7 +70,7 @@ export default class EDHRecService {
     await EDHRecService._saveRecommendationToDb(db, data);
     manager.destroy();
 
-    return data;
+    return new EDHRecRecommendation(data);
   }
 
   /**
@@ -212,6 +214,6 @@ export default class EDHRecService {
       cards.push(card);
     }
 
-    return { id, url, cards };
+    return new EDHRecRecommendation({ id, url, cards });
   }
 }

@@ -43,10 +43,11 @@ export default class LowDB {
     this._name = db;
     this._table = table;
     this._db.defaults(defaults).write();
-    this._initCache();
   }
 
   get() {
+    this._initCache();
+
     return InMemoryCache.get(this._name, this._table);
   }
 
@@ -54,6 +55,8 @@ export default class LowDB {
    * @param {object} query
    */
   find(query) {
+    this._initCache();
+
     return InMemoryCache.find(this._name, this._table, query);
   }
 
@@ -61,6 +64,8 @@ export default class LowDB {
    * @param {object} data
    */
   push(data) {
+    this._initCache();
+
     if (this.find({ id: data.id })) {
       throw new Error(`a post with this id already exists: [ ${data.id} ]`);
     }
@@ -82,6 +87,8 @@ export default class LowDB {
    * @param {object} data
    */
   assign(id, data) {
+    this._initCache();
+
     if (!id) {
       throw new Error("id is undefined");
     }
@@ -101,6 +108,8 @@ export default class LowDB {
    * @param {string} id
    */
   remove(id) {
+    this._initCache();
+
     if (!id) {
       throw new Error("id is undefined");
     }
@@ -110,6 +119,21 @@ export default class LowDB {
     this._db.get(this._table)
       .remove({ id })
       .write();
+  }
+
+  cleanup() {
+    const data = this._db.get(this._table)
+      .value();
+
+    for (const item of data) {
+      const items = this._db.get(this._table)
+        .filter({ id: item.id })
+        .value();
+
+      if (items.length > 1) {
+        console.log(items);
+      }
+    }
   }
 
   _initCache() {

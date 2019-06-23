@@ -1,6 +1,5 @@
 import { filter, find } from "lodash";
 import TappedOutDeck from "models/TappedOutDeck";
-import Card from "models/Card";
 import ArraySort, { SortBy } from "utils/ArraySort";
 
 export default class CommanderDeck {
@@ -16,14 +15,13 @@ export default class CommanderDeck {
     };
     this.isCalculated = false;
 
-    console.log("creating new CommanderDeck");
-    console.log("adding cards to CommanderDeck");
-    for (const data of tappedOutDeck.cards) {
-      const card = new Card(data);
+    tappedOutDeck.calculateTypes();
+    this.types = tappedOutDeck.types;
+
+    for (const card of tappedOutDeck.cards) {
       card.isCommander = true;
       this.cards.push(card);
     }
-    console.log("cards added to CommanderDeck");
   }
 
   /**
@@ -34,21 +32,20 @@ export default class CommanderDeck {
     let similarity = 0;
     const { cards } = tappedOutDeck;
 
-    for (const cardData of cards) {
-      const existingCard = find(this.cards, { id: cardData.id });
+    for (const card of cards) {
+      const existingCard = find(this.cards, { id: card.id });
+
       if (existingCard) {
         existingCard.isTappedOut = true;
-        existingCard.addTappedOutAmount(cardData.tappedOut.amount);
+        existingCard.addTappedOutAmount(card.tappedOut.amount);
         similarity += 1;
       } else {
-        const newCard = new Card(cardData);
-        newCard.isTappedOut = true;
-        this.cards.push(newCard);
+        card.isTappedOut = true;
+        this.cards.push(card);
       }
     }
 
     tappedOutDeck.similarity = Math.floor((similarity / (this.length + cards.length)) * 1000) / 10;
-
     this.tappedOut.decks.push(tappedOutDeck);
   }
 
@@ -58,15 +55,15 @@ export default class CommanderDeck {
   addRecommendation(edhRecRecommendation) {
     const { cards } = edhRecRecommendation;
 
-    for (const cardData of cards) {
-      const existingCard = find(this.cards, { id: cardData.id });
+    for (const card of cards) {
+      const existingCard = find(this.cards, { id: card.id });
+
       if (existingCard) {
         existingCard.isEDHRec = true;
-        existingCard.setEdhRec(cardData.edhRec);
+        existingCard.setEdhRec(card.edhRec);
       } else {
-        const newCard = new Card(cardData);
-        newCard.isEDHRec = true;
-        this.cards.push(newCard);
+        card.isEDHRec = true;
+        this.cards.push(card);
       }
     }
   }
@@ -77,6 +74,11 @@ export default class CommanderDeck {
     for (const card of this.cards) {
       card.calculatePercent(this.tappedOut.added);
     }
+
+    for (const deck of this.tappedOut.decks) {
+      deck.calculateTypes();
+    }
+
     this.isCalculated = true;
   }
 
@@ -114,8 +116,11 @@ export default class CommanderDeck {
     const { id, url, similarity } = deck;
     const array = [];
 
-    for (const cardData of deck.cards) {
-      const existingCard = find(this.cards, { id: cardData.id });
+    for (const card of deck.cards) {
+      const alreadyPushed = find(array, { id: card.id });
+      if (alreadyPushed) continue;
+
+      const existingCard = find(this.cards, { id: card.id });
 
       if (!existingCard) {
         throw new Error("could not find card");
@@ -123,11 +128,10 @@ export default class CommanderDeck {
 
       if (existingCard.isCommander) continue;
 
-      const newCard = new Card(cardData);
-      newCard.setEdhRec(existingCard.edhRec);
-      newCard.setTappedOut(existingCard.tappedOut);
-      newCard.calculatePercent(this.tappedOut.added);
-      array.push(newCard);
+      card.setEdhRec(existingCard.edhRec);
+      card.setTappedOut(existingCard.tappedOut);
+      card.calculatePercent(this.tappedOut.added);
+      array.push(card);
     }
 
     const cards = ArraySort.sortProperty(array, "tappedOut.percent", SortBy.DESCENDING);
@@ -142,19 +146,5 @@ export default class CommanderDeck {
     this.calculate();
     const cards = filter(this.cards, { isCommander: true });
     return ArraySort.sortProperty(cards, "tappedOut.percent", SortBy.ASCENDING);
-  }
-
-  _filterBasicLand(name) {
-    const regExps = [
-      /(.*(Basic)*.*Plains.*)/,
-      /(.*(Basic)*.*Swamp.*)/,
-      /(.*(Basic)*.*Mountain.*)/,
-      /(.*(Basic)*.*Island.*)/,
-      /(.*(Basic)*.*Forest.*)/,
-    ];
-
-    for (const regex of regExps) {
-      if (name.match(regex)) return null;
-    }
   }
 }

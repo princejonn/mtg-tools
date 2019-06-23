@@ -75,7 +75,7 @@ export default class HTMLService {
   static _buildCardsHTML(cards) {
     const array = [];
     for (const card of cards) {
-      array.push(`<div class="card-container">
+      array.push(`<div class="card-container" data-id="${card.id}"> 
     <div class="card-image"><img class="card-image-img" src="${card.image}" alt="${card.name}"/></div>
     <div class="card-data">
         <div class="card-data-col">TappedOut <span>${card.tappedOut.percent}%</span></div>

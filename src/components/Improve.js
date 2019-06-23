@@ -1,12 +1,6 @@
 import { includes } from "lodash";
-import Commander from "models/Commander";
 import CommanderDeck from "models/CommanderDeck";
-import EDHRecRecommendation from "models/EDHRecRecommendation";
-import EDHRecTheme from "models/EDHRecTheme";
-import EDHRecThemeList from "models/EDHRecThemeList";
 import TappedOutAccount from "models/TappedOutAccount";
-import TappedOutDeck from "models/TappedOutDeck";
-import TappedOutLinkList from "models/TappedOutLinkList";
 import EDHRecService from "services/EDHRecService";
 import ReadLineService from "services/ReadLineService";
 import ReporterService from "services/ReporterService";
@@ -22,30 +16,18 @@ export default class Improve {
   }
 
   async main() {
-    const commanderData = await TappedOutService.getCommander(this.url, this.account);
-    const commander = new Commander(commanderData);
-
-    const themeListData = await EDHRecService.getThemes(commander);
-    const themeList = new EDHRecThemeList(themeListData);
-
-    const themeData = await ReadLineService.selectTheme(themeList);
-    const theme = new EDHRecTheme(themeData);
-
-    const recommendationData = await EDHRecService.getRecommendation(theme);
-    const recommendation = new EDHRecRecommendation(recommendationData);
-
-    const coDeckData = await TappedOutService.getCommanderDeck(commander, this.account);
-    const coDeck = new TappedOutDeck(coDeckData);
+    const commander = await TappedOutService.getCommander(this.url, this.account);
+    const themeList = await EDHRecService.getThemeList(commander);
+    const theme = await ReadLineService.selectTheme(themeList);
+    const recommendation = await EDHRecService.getRecommendation(theme);
+    const coDeck = await TappedOutService.getCommanderDeck(commander, this.account);
+    const linkList = await TappedOutService.getSimilarLinks(commander);
 
     const commanderDeck = new CommanderDeck(coDeck);
 
-    const linkListData = await TappedOutService.getSimilarLinks(commander);
-    const linkList = new TappedOutLinkList(linkListData);
-
     for (const link of linkList.links) {
-      const toDeckData = await TappedOutService.getDeck(link);
-      if (!toDeckData) continue;
-      const toDeck = new TappedOutDeck(toDeckData);
+      const toDeck = await TappedOutService.getDeck(link);
+      if (!toDeck) continue;
       commanderDeck.addDeck(toDeck);
     }
 

@@ -1,8 +1,11 @@
 import uuidv4 from "uuid/v4";
-import PuppeteerManager from "utils/PuppeteerManager";
+import Commander from "models/Commander";
+import TappedOutDeck from "models/TappedOutDeck";
+import TappedOutLinkList from "models/TappedOutLinkList";
 import ScryfallService from "services/ScryfallService";
 import CacheTimeout from "utils/CacheTimeout";
 import LowDB, { Table } from "utils/LowDB";
+import PuppeteerManager from "utils/PuppeteerManager";
 import RateLimit from "utils/RateLimit";
 
 const Selector = {
@@ -23,7 +26,7 @@ export default class TappedOutService {
   /**
    * @param {string} url
    * @param {TappedOutAccount} account
-   * @returns {Promise<{id: string, url: string, name: string, queryString: string}>}
+   * @returns {Promise<Commander>}
    */
   static async getCommander(url, account) {
     const timeout = new CacheTimeout({ years: 1 });
@@ -33,7 +36,7 @@ export default class TappedOutService {
 
     if (cached && timeout.isOK(cached.created)) {
       console.log("getting commander data:", url);
-      return cached;
+      return new Commander(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found commander in database with expired timeout:", url);
       db.remove(cached.id);
@@ -47,13 +50,13 @@ export default class TappedOutService {
     db.push(data);
     manager.destroy();
 
-    return data;
+    return new Commander(data);
   }
 
   /**
    * @param {Commander} commander
    * @param {TappedOutAccount} account
-   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
+   * @returns {Promise<TappedOutDeck>}
    */
   static async getCommanderDeck(commander, account) {
     console.log("getting commander deck:", commander.name);
@@ -61,15 +64,18 @@ export default class TappedOutService {
     const manager = new PuppeteerManager();
     await manager.init();
     await TappedOutService._login(manager, account);
+
+    console.log("getting commander deck cards:", commander.name);
+
     const data = await TappedOutService._buildDeck(manager, commander.url);
     manager.destroy();
 
-    return data;
+    return new TappedOutDeck(data);
   }
 
   /**
    * @param {Commander} commander
-   * @returns {Promise<{id: string, links: Array<string>}>}
+   * @returns {Promise<TappedOutLinkList>}
    */
   static async getSimilarLinks(commander) {
     const timeout = new CacheTimeout({ days: 7 });
@@ -79,7 +85,7 @@ export default class TappedOutService {
 
     if (cached && timeout.isOK(cached.created)) {
       console.log("getting similar commander deck links:", commander.name);
-      return cached;
+      return new TappedOutLinkList(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found links in database with expired timeout:", commander.name);
       db.remove(cached.id);
@@ -92,12 +98,12 @@ export default class TappedOutService {
     const data = await TappedOutService._buildSimilarLinks(manager, commander);
     db.push(data);
 
-    return data;
+    return new TappedOutLinkList(data);
   }
 
   /**
    * @param {string} url
-   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
+   * @returns {Promise<TappedOutDeck>}
    */
   static async getDeck(url) {
     const timeout = new CacheTimeout({ days: 7 });
@@ -123,7 +129,7 @@ export default class TappedOutService {
       await TappedOutService._saveDeckToDb(db, data);
       manager.destroy();
 
-      return data;
+      return new TappedOutDeck(data);
     } catch (err) {
       console.log("unable to build deck:", url);
     }
@@ -173,7 +179,7 @@ export default class TappedOutService {
   static async _buildSimilarLinks(manager, commander) {
     const uuid = uuidv4();
     const baseUrl = `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commander.queryString}&price_0=&price_1=&o=-rating&submit=Filter+results`;
-    const pages = [ 1, 2, 3 ];
+    const pages = [ 1, 2 ];
     const links = [];
 
     for (const number of pages) {
@@ -282,8 +288,6 @@ export default class TappedOutService {
     await manager.page.type(Selector.PASSWORD, account.password);
     await manager.page.click(Selector.SUBMIT);
     await manager.page.waitForSelector(Selector.LOGGED_IN, { visible: true });
-
-    console.log("logged in:", account.username);
   }
 
   /**
@@ -320,6 +324,6 @@ export default class TappedOutService {
       cards.push(card);
     }
 
-    return { id, url, cards };
+    return new TappedOutDeck({ id, url, cards });
   }
 }

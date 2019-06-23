@@ -2,6 +2,7 @@ import { includes, startsWith } from "lodash";
 import humps from "lodash-humps";
 import * as queryString from "query-string";
 import request from "request-promise-native";
+import Card from "models/Card";
 import CacheTimeout from "utils/CacheTimeout";
 import Latinise from "utils/Latinise";
 import LowDB, { Table } from "utils/LowDB";
@@ -20,16 +21,16 @@ export default class ScryfallService {
     let data = {};
 
     if (cached && timeout.isOK(cached.created)) {
-      return cached;
+      return new Card(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found card in database with expired timeout. fetching from card uri on scryfall:", cached.uri);
       db.remove(cached.id);
       data = await ScryfallService._getCard(cached.uri);
     }
 
-    ScryfallService._saveToDb(db, data);
+    if (!data) ScryfallService._saveToDb(db, data);
 
-    return data;
+    return new Card(data);
   }
 
   /**
@@ -44,7 +45,7 @@ export default class ScryfallService {
     let data = {};
 
     if (cached && timeout.isOK(cached.created)) {
-      return cached;
+      return new Card(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found card in database with expired timeout. fetching from card uri on scryfall:", cached.uri);
       db.remove(cached.id);
@@ -56,7 +57,7 @@ export default class ScryfallService {
 
     ScryfallService._saveToDb(db, data);
 
-    return data;
+    return new Card(data);
   }
 
   /**
@@ -148,19 +149,12 @@ export default class ScryfallService {
     const table = db.get();
 
     for (const card of table) {
-      if (card.aliases && includes(card.aliases, name)) {
-        return card;
-      }
-
       if (!startsWith(card.name, "name")) continue;
       array.push(card);
     }
 
     for (const card of array) {
       if (!includes(card.name, "//")) continue;
-      const aliases = card.aliases || [];
-      aliases.push(name);
-      db.assign(card.id, { aliases });
       return card;
     }
 
