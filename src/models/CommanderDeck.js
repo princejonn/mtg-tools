@@ -1,8 +1,7 @@
 import { filter, find } from "lodash";
-import logger from "logger";
+import TappedOutDeck from "models/TappedOutDeck";
+import Card from "models/Card";
 import ArraySort, { SortBy } from "utils/ArraySort";
-import TappedOutDeck from "./TappedOutDeck";
-import Card from "./Card";
 
 export default class CommanderDeck {
   /**
@@ -17,13 +16,14 @@ export default class CommanderDeck {
     };
     this.isCalculated = false;
 
-    logger.debug("adding cards to deck");
+    console.log("creating new CommanderDeck");
+    console.log("adding cards to CommanderDeck");
     for (const data of tappedOutDeck.cards) {
       const card = new Card(data);
       card.isCommander = true;
       this.cards.push(card);
     }
-    logger.debug("cards added to deck");
+    console.log("cards added to CommanderDeck");
   }
 
   /**
@@ -142,5 +142,19 @@ export default class CommanderDeck {
     this.calculate();
     const cards = filter(this.cards, { isCommander: true });
     return ArraySort.sortProperty(cards, "tappedOut.percent", SortBy.ASCENDING);
+  }
+
+  _filterBasicLand(name) {
+    const regExps = [
+      /(.*(Basic)*.*Plains.*)/,
+      /(.*(Basic)*.*Swamp.*)/,
+      /(.*(Basic)*.*Mountain.*)/,
+      /(.*(Basic)*.*Island.*)/,
+      /(.*(Basic)*.*Forest.*)/,
+    ];
+
+    for (const regex of regExps) {
+      if (name.match(regex)) return null;
+    }
   }
 }

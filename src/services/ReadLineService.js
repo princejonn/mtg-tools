@@ -38,7 +38,7 @@ export default class ReadLineService {
    */
   static async _buildQuestion(themeList) {
     const { themes } = themeList;
-    let question = "Select a theme/budget if you want:\n";
+    let question = "\n\nSelect a theme/budget if you want:\n";
     let padLength = 0;
 
     for (const item of themes) {

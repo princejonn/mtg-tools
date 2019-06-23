@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import logger from "logger";
 import HTMLService from "services/HTMLService";
 import DateFns from "utils/DateFns";
 
@@ -14,6 +13,8 @@ export default class ReporterService {
     const pwd = process.env.PWD;
     const cwd = path.join(pwd, "reports");
     const now = DateFns.format(DateFns.get(), "YYYY-MM-DDTHH_mm_ss");
+
+    console.log("building report");
 
     if (!fs.existsSync(cwd)) {
       fs.mkdirSync(cwd);
@@ -30,7 +31,6 @@ export default class ReporterService {
 
     fs.appendFileSync(file, html);
 
-    logger.debug("report generated", file);
     console.log(`report can be found in:\n\n-->  ${file}  <--\n`);
   }
 }

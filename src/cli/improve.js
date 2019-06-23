@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import logger from "logger";
 import Improve from "components/Improve";
 
 (async () => {
@@ -12,7 +11,7 @@ import Improve from "components/Improve";
     const improve = new Improve(url, username, password);
     await improve.main();
   } catch (err) {
-    logger.error(err);
+    console.error(err);
   } finally {
     process.exit(0);
   }

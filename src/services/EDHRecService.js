@@ -1,6 +1,5 @@
 import { includes } from "lodash";
 import uuidv4 from "uuid/v4";
-import logger from "logger";
 import PuppeteerManager from "utils/PuppeteerManager";
 import ScryfallService from "services/ScryfallService";
 import CacheTimeout from "utils/CacheTimeout";
@@ -16,7 +15,7 @@ const Selector = {
 export default class EDHRecService {
   /**
    * @param {Commander} commander
-   * @returns {Promise<EDHRecThemeList>}
+   * @returns {Promise<{id: string, commander: string, themes: Array<{theme: string, link: string, type: string}>}>}
    */
   static async getThemes(commander) {
     const timeout = new CacheTimeout({ days: 14 });
@@ -25,13 +24,14 @@ export default class EDHRecService {
     const cached = db.find({ commander: commander.name });
 
     if (cached && timeout.isOK(cached.created)) {
+      console.log("getting themes for commander:", commander.name);
       return cached;
     } if (cached && !timeout.isOK(cached.created)) {
-      logger.debug("found themes in database with expired timeout", commander.name);
+      console.log("found themes in database with expired timeout:", commander.name);
       db.remove(cached.id);
     }
 
-    logger.debug("searching for themes on edhrec", commander.name);
+    console.log("searching for themes on edhrec:", commander.name);
 
     const manager = new PuppeteerManager();
     await manager.init();
@@ -44,7 +44,7 @@ export default class EDHRecService {
 
   /**
    * @param {EDHRecTheme} theme
-   * @returns {Promise<EDHRecRecommendation>}
+   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
    */
   static async getRecommendation(theme) {
     const timeout = new CacheTimeout({ days: 14 });
@@ -53,14 +53,14 @@ export default class EDHRecService {
     const cached = db.find({ url: theme.url });
 
     if (cached && timeout.isOK(cached.created)) {
-      const rec = await EDHRecService._buildRecFromCache(cached);
-      return rec;
+      console.log("getting recommendation for theme:", theme.theme);
+      return EDHRecService._buildRecFromCache(cached);
     } if (cached && !timeout.isOK(cached.created)) {
-      logger.debug("found commander recommendation in database with expired timeout", theme.url);
+      console.log("found commander recommendation in database with expired timeout:", theme.url);
       db.remove(cached.id);
     }
 
-    logger.debug("searching for commander recommendation on edhrec", theme.url);
+    console.log("searching for commander recommendation on edhrec:", theme.url);
 
     const manager = new PuppeteerManager();
     await manager.init();

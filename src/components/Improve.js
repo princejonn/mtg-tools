@@ -22,37 +22,35 @@ export default class Improve {
   }
 
   async main() {
-    console.log("getting commander");
-    const commander = new Commander(await TappedOutService.getCommander(this.url, this.account));
+    const commanderData = await TappedOutService.getCommander(this.url, this.account);
+    const commander = new Commander(commanderData);
 
-    console.log("getting commander themes on EDHRec");
-    const themeList = new EDHRecThemeList(await EDHRecService.getThemes(commander));
+    const themeListData = await EDHRecService.getThemes(commander);
+    const themeList = new EDHRecThemeList(themeListData);
 
-    console.log("awaiting input to select theme on EDHRec");
-    const theme = new EDHRecTheme(await ReadLineService.selectTheme(themeList));
+    const themeData = await ReadLineService.selectTheme(themeList);
+    const theme = new EDHRecTheme(themeData);
 
-    console.log("getting recommendation from EDHRec");
-    const recommendation = new EDHRecRecommendation(await EDHRecService.getRecommendation(theme));
+    const recommendationData = await EDHRecService.getRecommendation(theme);
+    const recommendation = new EDHRecRecommendation(recommendationData);
 
-    console.log("getting commander deck");
-    const coDeck = new TappedOutDeck(await TappedOutService.getCommanderDeck(commander, this.account));
+    const coDeckData = await TappedOutService.getCommanderDeck(commander, this.account);
+    const coDeck = new TappedOutDeck(coDeckData);
 
-    console.log("creating commander deck");
     const commanderDeck = new CommanderDeck(coDeck);
 
-    console.log("getting deck links from TappedOut");
-    const linkList = new TappedOutLinkList(await TappedOutService.getSimilarLinks(commander));
+    const linkListData = await TappedOutService.getSimilarLinks(commander);
+    const linkList = new TappedOutLinkList(linkListData);
 
     for (const link of linkList.links) {
-      const toDeck = new TappedOutDeck(await TappedOutService.getDeck(link));
-      console.log("adding deck", toDeck.url);
+      const toDeckData = await TappedOutService.getDeck(link);
+      if (!toDeckData) continue;
+      const toDeck = new TappedOutDeck(toDeckData);
       commanderDeck.addDeck(toDeck);
     }
 
-    console.log("adding recommendation", recommendation.url);
     commanderDeck.addRecommendation(recommendation);
 
-    console.log("building report");
     await ReporterService.buildImproveReport(commander, commanderDeck);
   }
 }

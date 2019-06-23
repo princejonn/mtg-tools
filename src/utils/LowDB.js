@@ -1,14 +1,15 @@
 import low from "lowdb";
 import FileSync from "lowdb/adapters/FileSync";
 import DateFns from "utils/DateFns";
+import InMemoryCache from "utils/InMemoryCache";
 
-const Database = {
+export const Database = {
   EDHREC: "db-edhrec.json",
   SCRYFALL: "db-scryfall.json",
   TAPPED_OUT: "db-tappedout.json",
 };
 
-const Defaults = {
+export const Defaults = {
   EDHREC: { themes: [], recommendations: [] },
   SCRYFALL: { cards: [] },
   TAPPED_OUT: { commanders: [], decks: [], links: [] },
@@ -38,23 +39,22 @@ export default class LowDB {
     if (!table) {
       throw new Error("table is undefined");
     }
-
     this._db = low(new FileSync(db));
+    this._name = db;
     this._table = table;
     this._db.defaults(defaults).write();
+    this._initCache();
+  }
+
+  get() {
+    return InMemoryCache.get(this._name, this._table);
   }
 
   /**
-   * @param {object} [query]
+   * @param {object} query
    */
   find(query) {
-    if (!query) {
-      return this._db.get(this._table)
-        .value();
-    }
-    return this._db.get(this._table)
-      .find(query)
-      .value();
+    return InMemoryCache.find(this._name, this._table, query);
   }
 
   /**
@@ -64,30 +64,35 @@ export default class LowDB {
     if (this.find({ id: data.id })) {
       throw new Error(`a post with this id already exists: [ ${data.id} ]`);
     }
+    if (!Object.keys(data).length) {
+      throw new Error("trying to push an empty data object");
+    }
+
+    const object = { ...data, created: DateFns.now() };
+
+    InMemoryCache.push(this._name, this._table, object);
+
     this._db.get(this._table)
-      .push({
-        ...data,
-        created: DateFns.now(),
-      })
+      .push(object)
       .write();
   }
 
   /**
-   * @param {object} query
+   * @param {string} id
    * @param {object} data
    */
-  assign(query, data) {
-    if (!query) {
-      throw new Error("query is undefined");
+  assign(id, data) {
+    if (!id) {
+      throw new Error("id is undefined");
     }
     if (!data) {
       throw new Error("data is undefined");
     }
-    if (!this.find({ id: data.id })) {
-      throw new Error(`id could not be found in the database table: [ ${data.id} ]`);
-    }
+
+    InMemoryCache.assign(this._name, this._table, { id }, data);
+
     this._db.get(this._table)
-      .find(query)
+      .find({ id })
       .assign(data)
       .write();
   }
@@ -99,11 +104,17 @@ export default class LowDB {
     if (!id) {
       throw new Error("id is undefined");
     }
-    if (!this.find({ id })) {
-      throw new Error(`id could not be found in the database table: [ ${id} ]`);
-    }
+
+    InMemoryCache.remove(this._name, this._table, { id });
+
     this._db.get(this._table)
       .remove({ id })
       .write();
+  }
+
+  _initCache() {
+    if (InMemoryCache.isLoaded(this._name, this._table)) return;
+    const data = this._db.get(this._table).value();
+    InMemoryCache.load(this._name, this._table, data);
   }
 }

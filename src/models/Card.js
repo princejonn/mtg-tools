@@ -6,10 +6,19 @@ export default class Card {
 
     this.id = data.id;
     this.name = data.name;
+    this.typeLine = data.typeLine;
     this.image = data.image;
     this.colors = data.colors;
     this.manaCost = data.manaCost;
     this.uri = data.uri;
+
+    this.image = null;
+
+    if (data.imageUris) {
+      this.image = data.imageUris.normal;
+    } else if (data.cardFaces && data.cardFaces.length) {
+      this.image = data.cardFaces[0].imageUris.normal;
+    }
 
     this.isCommander = false;
     this.isEDHRec = false;

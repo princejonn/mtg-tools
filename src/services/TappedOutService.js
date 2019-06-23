@@ -1,5 +1,4 @@
 import uuidv4 from "uuid/v4";
-import logger from "logger";
 import PuppeteerManager from "utils/PuppeteerManager";
 import ScryfallService from "services/ScryfallService";
 import CacheTimeout from "utils/CacheTimeout";
@@ -24,7 +23,7 @@ export default class TappedOutService {
   /**
    * @param {string} url
    * @param {TappedOutAccount} account
-   * @returns {Promise<Commander>}
+   * @returns {Promise<{id: string, url: string, name: string, queryString: string}>}
    */
   static async getCommander(url, account) {
     const timeout = new CacheTimeout({ years: 1 });
@@ -33,13 +32,14 @@ export default class TappedOutService {
     const cached = db.find({ url });
 
     if (cached && timeout.isOK(cached.created)) {
+      console.log("getting commander data:", url);
       return cached;
     } if (cached && !timeout.isOK(cached.created)) {
-      logger.debug("found commander in database with expired timeout", url);
+      console.log("found commander in database with expired timeout:", url);
       db.remove(cached.id);
     }
 
-    logger.debug("searching for commander on tapped out", url);
+    console.log("searching for commander on tapped out:", url);
 
     const manager = new PuppeteerManager();
     await manager.init();
@@ -53,9 +53,11 @@ export default class TappedOutService {
   /**
    * @param {Commander} commander
    * @param {TappedOutAccount} account
-   * @returns {Promise<TappedOutDeck>}
+   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
    */
   static async getCommanderDeck(commander, account) {
+    console.log("getting commander deck:", commander.name);
+
     const manager = new PuppeteerManager();
     await manager.init();
     await TappedOutService._login(manager, account);
@@ -67,7 +69,7 @@ export default class TappedOutService {
 
   /**
    * @param {Commander} commander
-   * @returns {Promise<TappedOutLinkList>}
+   * @returns {Promise<{id: string, links: Array<string>}>}
    */
   static async getSimilarLinks(commander) {
     const timeout = new CacheTimeout({ days: 7 });
@@ -76,13 +78,14 @@ export default class TappedOutService {
     const cached = db.find({ commander: commander.name });
 
     if (cached && timeout.isOK(cached.created)) {
+      console.log("getting similar commander deck links:", commander.name);
       return cached;
     } if (cached && !timeout.isOK(cached.created)) {
-      logger.debug("found links in database with expired timeout", commander.name);
+      console.log("found links in database with expired timeout:", commander.name);
       db.remove(cached.id);
     }
 
-    logger.debug("searching for links on tapped out", commander.name);
+    console.log("searching for links on tapped out:", commander.name);
 
     const manager = new PuppeteerManager();
     await manager.init();
@@ -94,7 +97,7 @@ export default class TappedOutService {
 
   /**
    * @param {string} url
-   * @returns {Promise<TappedOutDeck>}
+   * @returns {Promise<{id: string, url: string, cards: Array<Card>}>}
    */
   static async getDeck(url) {
     const timeout = new CacheTimeout({ days: 7 });
@@ -103,21 +106,27 @@ export default class TappedOutService {
     const cached = db.find({ url });
 
     if (cached && timeout.isOK(cached.created)) {
+      console.log("getting deck:", url);
       return TappedOutService._buildDeckFromCached(cached);
     } if (cached && !timeout.isOK(cached.created)) {
-      logger.debug("found deck in database with expired timeout", url);
+      console.log("found deck in database with expired timeout:", url);
       db.remove(cached.id);
     }
 
-    logger.debug("searching for deck on tapped out", url);
+    console.log("searching for deck on tapped out:", url);
 
-    const manager = new PuppeteerManager();
-    await manager.init();
-    const data = await TappedOutService._buildDeck(manager, url);
-    await TappedOutService._saveDeckToDb(db, data);
-    manager.destroy();
+    try {
+      const manager = new PuppeteerManager();
+      await manager.init();
 
-    return data;
+      const data = await TappedOutService._buildDeck(manager, url);
+      await TappedOutService._saveDeckToDb(db, data);
+      manager.destroy();
+
+      return data;
+    } catch (err) {
+      console.log("unable to build deck:", url);
+    }
   }
 
   /**
@@ -128,9 +137,8 @@ export default class TappedOutService {
    * @private
    */
   static async _buildCommander(manager, url, account) {
-    logger.debug("finding commander");
-
     const uuid = uuidv4();
+
     await TappedOutService._login(manager, account);
 
     await manager.goto({
@@ -163,8 +171,6 @@ export default class TappedOutService {
    * @private
    */
   static async _buildSimilarLinks(manager, commander) {
-    logger.debug("finding similar links");
-
     const uuid = uuidv4();
     const baseUrl = `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commander.queryString}&price_0=&price_1=&o=-rating&submit=Filter+results`;
     const pages = [ 1, 2, 3 ];
@@ -185,11 +191,12 @@ export default class TappedOutService {
         for (const element of elements) {
           const href = await manager.getElementAttribute(element, "href");
           const link = `https://tappedout.net${href}`;
-          logger.debug("found similar link", link);
+          console.log("found similar link:", link);
           links.push(link);
         }
       } catch (err) {
-        logger.warn(err);
+        console.log("unable to build similar links:", searchUrl);
+        console.log(err);
       }
     }
 
@@ -205,49 +212,57 @@ export default class TappedOutService {
    * @private
    */
   static async _buildDeck(manager, url) {
-    logger.debug("finding cards");
-
     const uuid = uuidv4();
     const array = [];
     const cards = [];
+    let retry = 0;
 
-    await RateLimit.tappedOut();
-    await manager.goto({
-      url,
-      waitForSelector: Selector.CARD,
-    });
+    while (retry < 4) {
+      await RateLimit.tappedOut();
 
-    const parents = await manager.page.$$(Selector.CARD_LIST);
-    const mainBoard = parents[0];
-    const cardItems = await mainBoard.$$(Selector.MEMBER);
+      try {
+        await manager.goto({
+          url,
+          waitForSelector: Selector.CARD,
+        });
 
-    for (const item of cardItems) {
-      const card = await item.$(Selector.CARD);
-      let name = await manager.getElementAttribute(card, "data-name");
-      let amount = await manager.getElementAttribute(card, "data-qty");
-      amount = parseInt(amount, 10);
+        const parents = await manager.page.$$(Selector.CARD_LIST);
+        const mainBoard = parents[0];
+        const cardItems = await mainBoard.$$(Selector.MEMBER);
 
-      const flip = await item.$$(Selector.CARD_LINK);
+        for (const item of cardItems) {
+          const card = await item.$(Selector.CARD);
+          let name = await manager.getElementAttribute(card, "data-name");
+          let amount = await manager.getElementAttribute(card, "data-qty");
+          amount = parseInt(amount, 10);
 
-      if (flip.length > 1) {
-        const flipLink = flip[1];
-        const flipName = await manager.getElementAttribute(flipLink, "data-name");
-        if (flipName) {
-          name = `${name} // ${flipName}`;
+          const flip = await item.$$(Selector.CARD_LINK);
+
+          if (flip.length > 1) {
+            const flipLink = flip[1];
+            const flipName = await manager.getElementAttribute(flipLink, "data-name");
+            if (flipName) {
+              name = `${name} // ${flipName}`;
+            }
+          }
+
+          array.push({ name, tappedOut: { amount } });
         }
+
+        for (const item of array) {
+          const { name, tappedOut } = item;
+          const card = await ScryfallService.findCard(name);
+          if (!card) continue;
+          card.tappedOut = tappedOut;
+          cards.push(card);
+        }
+
+        return { id: uuid, url, cards };
+      } catch (err) {
+        retry += 1;
+        console.log("error while trying to find deck on tapped out. retrying:", retry);
       }
-
-      array.push({ name, tappedOut: { amount } });
     }
-
-    for (const item of array) {
-      const { name, tappedOut } = item;
-      const card = await ScryfallService.findCard(name);
-      if (!card) continue;
-      card.tappedOut = tappedOut;
-      cards.push(card);
-    }
-    return { id: uuid, url, cards };
   }
 
   /**
@@ -257,7 +272,8 @@ export default class TappedOutService {
    * @private
    */
   static async _login(manager, account) {
-    logger.debug("logging in to user account");
+    console.log("logging in:", account.username);
+
     await manager.goto({
       url: "https://tappedout.net/accounts/login/?next=/",
       waitForSelector: Selector.USERNAME,
@@ -265,8 +281,9 @@ export default class TappedOutService {
     await manager.page.type(Selector.USERNAME, account.username);
     await manager.page.type(Selector.PASSWORD, account.password);
     await manager.page.click(Selector.SUBMIT);
-    logger.debug("verifying if login was successful");
     await manager.page.waitForSelector(Selector.LOGGED_IN, { visible: true });
+
+    console.log("logged in:", account.username);
   }
 
   /**
@@ -280,7 +297,7 @@ export default class TappedOutService {
     const cards = [];
 
     for (const item of data.cards) {
-      cards.push({ id: item.id, tappedOut: item.tappedOut });
+      cards.push({ id: item.id, typeLine: item.typeLine, tappedOut: item.tappedOut });
     }
 
     db.push({ id, url, cards });
@@ -298,6 +315,7 @@ export default class TappedOutService {
     for (const item of data.cards) {
       const card = await ScryfallService.getCard(item.id);
       if (!card) continue;
+      card.typeLine = item.typeLine;
       card.tappedOut = item.tappedOut;
       cards.push(card);
     }

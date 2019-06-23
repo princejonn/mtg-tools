@@ -1,7 +1,7 @@
 import { includes, startsWith } from "lodash";
+import humps from "lodash-humps";
 import * as queryString from "query-string";
 import request from "request-promise-native";
-import logger from "logger";
 import CacheTimeout from "utils/CacheTimeout";
 import Latinise from "utils/Latinise";
 import LowDB, { Table } from "utils/LowDB";
@@ -22,7 +22,7 @@ export default class ScryfallService {
     if (cached && timeout.isOK(cached.created)) {
       return cached;
     } if (cached && !timeout.isOK(cached.created)) {
-      logger.debug("found card in database with expired timeout. fetching from card uri on scryfall", cached.uri);
+      console.log("found card in database with expired timeout. fetching from card uri on scryfall:", cached.uri);
       db.remove(cached.id);
       data = await ScryfallService._getCard(cached.uri);
     }
@@ -37,18 +37,6 @@ export default class ScryfallService {
    * @returns {Promise<Card>}
    */
   static async findCard(name) {
-    const regExps = [
-      /(.*(Basic)*.*Plains.*)/,
-      /(.*(Basic)*.*Swamp.*)/,
-      /(.*(Basic)*.*Mountain.*)/,
-      /(.*(Basic)*.*Island.*)/,
-      /(.*(Basic)*.*Forest.*)/,
-    ];
-
-    for (const regex of regExps) {
-      if (name.match(regex)) return null;
-    }
-
     const timeout = new CacheTimeout({ years: 1 });
     const db = new LowDB(Table.SCRYFALL_CARDS);
 
@@ -58,11 +46,11 @@ export default class ScryfallService {
     if (cached && timeout.isOK(cached.created)) {
       return cached;
     } if (cached && !timeout.isOK(cached.created)) {
-      logger.debug("found card in database with expired timeout. fetching from card uri on scryfall", cached.uri);
+      console.log("found card in database with expired timeout. fetching from card uri on scryfall:", cached.uri);
       db.remove(cached.id);
       data = await ScryfallService._getCard(cached.uri);
     } else {
-      logger.debug("searching for card on scryfall", name);
+      console.log("searching for card on scryfall:", name);
       data = await ScryfallService._findCard(name);
     }
 
@@ -80,8 +68,9 @@ export default class ScryfallService {
     await RateLimit.scryfall();
     const result = await request(uri, { method: "GET" });
     const parsed = JSON.parse(result);
-    parsed.name = Latinise(parsed.name);
-    return ScryfallService._parseCard(parsed);
+    const humped = humps(parsed);
+    humped.name = Latinise(humped.name);
+    return humped;
   }
 
   /**
@@ -90,22 +79,34 @@ export default class ScryfallService {
    * @private
    */
   static async _findCard(name) {
-    await RateLimit.scryfall();
-
     const parsedName = queryString.parse(Latinise(name));
     const query = queryString.stringify(parsedName);
     const url = `https://api.scryfall.com/cards/search?q=${query}`;
+    let retry = 0;
 
-    const result = await request(url, { method: "GET" });
-    const parsed = JSON.parse(result);
+    while (retry < 4) {
+      await RateLimit.scryfall();
 
-    for (const item of parsed.data) {
-      item.name = Latinise(item.name);
-      if (item.name !== name) continue;
-      return ScryfallService._parseCard(item);
+      try {
+        const result = await request(url, { method: "GET" });
+        const parsed = JSON.parse(result);
+
+        for (const item of parsed.data) {
+          item.name = Latinise(item.name);
+          if (item.name !== name) continue;
+          return humps(item);
+        }
+
+        return humps(parsed.data[0]);
+      } catch (err) {
+        if (err.statusCode === 503) {
+          retry += 1;
+          console.log("error while trying to find card on scryfall. retrying:", retry);
+        } else {
+          throw err;
+        }
+      }
     }
-
-    return ScryfallService._parseCard(parsed.data[0]);
   }
 
   /**
@@ -118,15 +119,13 @@ export default class ScryfallService {
     const exists = db.find({ id });
 
     if (!exists) {
-      db.push(data);
-      return;
+      return db.push(data);
     }
 
     if (!exists.uri === data.uri) {
-      logger.debug(data);
-      logger.debug(exists);
-
-      throw new Error("cards with matching ids do not match on [ mtgo_id|arena_id|tcgplayer_id ]");
+      console.log(data);
+      console.log(exists);
+      throw new Error("cards with matching ids do not match on [ uri ]");
     }
   }
 
@@ -146,41 +145,25 @@ export default class ScryfallService {
     }
 
     const array = [];
-    const table = db.find();
+    const table = db.get();
+
     for (const card of table) {
+      if (card.aliases && includes(card.aliases, name)) {
+        return card;
+      }
+
       if (!startsWith(card.name, "name")) continue;
       array.push(card);
     }
+
     for (const card of array) {
       if (!includes(card.name, "//")) continue;
+      const aliases = card.aliases || [];
+      aliases.push(name);
+      db.assign(card.id, { aliases });
       return card;
     }
 
     return null;
-  }
-
-  static _parseCard(data) {
-    const {
-      id,
-      name,
-      mana_cost,
-      scryfall_uri,
-    } = data;
-
-    let image;
-
-    if (data.image_uris) {
-      image = data.image_uris.normal;
-    } else if (data.card_faces && data.card_faces.length) {
-      image = data.card_faces[0].image_uris.normal;
-    }
-
-    return {
-      id,
-      name,
-      image,
-      manaCost: mana_cost,
-      uri: scryfall_uri.replace("?utm_source=api", ""),
-    };
   }
 }

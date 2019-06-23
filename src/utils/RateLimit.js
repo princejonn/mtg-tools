@@ -8,7 +8,7 @@ export default class RateLimit {
   }
 
   static async tappedOut() {
-    await RateLimit.delay(500);
+    await RateLimit.delay(1000);
   }
 
   static async delay(milliseconds) {
