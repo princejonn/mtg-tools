@@ -2,10 +2,8 @@ import { includes } from "lodash";
 
 export default class TappedOutDeck {
   constructor(data) {
-    this.id = data.id;
     this.url = data.url;
     this.cards = data.cards;
-    this.similarity = data.similarity || 0;
 
     this.types = {
       artifact: 0,
@@ -13,10 +11,8 @@ export default class TappedOutDeck {
       enchantment: 0,
       instant: 0,
       sorcery: 0,
-      lands: {
-        basic: 0,
-        special: 0,
-      },
+      basicLands: 0,
+      lands: 0,
     };
   }
 
@@ -25,26 +21,26 @@ export default class TappedOutDeck {
       const typeLine = card.typeLine.toLowerCase();
 
       if (includes(typeLine, "artifact")) {
-        this.types.artifact += 1;
+        this.types.artifact += card.tappedOut.amount;
       }
       if (includes(typeLine, "creature")) {
-        this.types.creature += 1;
+        this.types.creature += card.tappedOut.amount;
       }
       if (includes(typeLine, "enchantment")) {
-        this.types.enchantment += 1;
+        this.types.enchantment += card.tappedOut.amount;
       }
       if (includes(typeLine, "instant")) {
-        this.types.instant += 1;
+        this.types.instant += card.tappedOut.amount;
       }
       if (includes(typeLine, "sorcery")) {
-        this.types.sorcery += 1;
+        this.types.sorcery += card.tappedOut.amount;
       }
 
       if (includes(typeLine, "land") && includes(typeLine, "basic")) {
-        this.types.lands.basic += 1;
+        this.types.basicLands += card.tappedOut.amount;
       }
       if (includes(typeLine, "land") && !includes(typeLine, "basic")) {
-        this.types.lands.special += 1;
+        this.types.lands += card.tappedOut.amount;
       }
     }
   }

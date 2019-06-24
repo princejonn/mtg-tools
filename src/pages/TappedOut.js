@@ -1,8 +1,8 @@
 import Commander from "models/Commander";
 import TappedOutDeck from "models/TappedOutDeck";
 import TappedOutLinkList from "models/TappedOutLinkList";
+import BasePage from "pages/BasePage";
 import CacheTimeout from "utils/CacheTimeout";
-import PuppeteerManager from "utils/PuppeteerManager";
 import NeDB, { Collection } from "utils/NeDB";
 import RateLimit from "utils/RateLimit";
 
@@ -20,33 +20,34 @@ const Selector = {
   CARD_LINK: "span > a",
 };
 
-export default class TappedOutService {
+export default class TappedOut extends BasePage {
+  constructor() {
+    super();
+    this._loggedIn = false;
+    this._commanders = new NeDB(Collection.COMMANDERS);
+    this._links = new NeDB(Collection.LINKS);
+    this._decks = new NeDB(Collection.DECKS);
+  }
+
   /**
    * @param {string} url
    * @param {TappedOutAccount} account
    * @returns {Promise<Commander>}
    */
-  static async getCommander(url, account) {
+  async getCommander(url, account) {
     const timeout = new CacheTimeout({ years: 1 });
-    const db = new NeDB(Collection.COMMANDERS);
-
-    const cached = await db.find({ url });
+    const cached = await this._commanders.find({ url });
 
     if (cached && timeout.isOK(cached.created)) {
       return new Commander(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found commander in database with expired timeout:", url);
-      await db.remove({ url });
+      await this._commanders.remove({ url });
     }
 
     console.log("searching for commander on tapped out:", url);
-
-    const manager = new PuppeteerManager();
-    await manager.init();
-    const data = await TappedOutService._buildCommander(manager, url, account);
-    manager.destroy();
-
-    await db.insert(data);
+    const data = await this._buildCommander(url, account);
+    await this._commanders.insert(data);
 
     return new Commander(data);
   }
@@ -56,17 +57,12 @@ export default class TappedOutService {
    * @param {TappedOutAccount} account
    * @returns {Promise<TappedOutDeck>}
    */
-  static async getCommanderDeck(commander, account) {
+  async getCommanderDeck(commander, account) {
+    await super._init();
+    await this._login(account);
+
     console.log("searching for commander deck on tapped out:", commander.url);
-
-    const manager = new PuppeteerManager();
-    await manager.init();
-    await TappedOutService._login(manager, account);
-
-    console.log("searching for commander deck cards");
-
-    const data = await TappedOutService._buildDeck(manager, commander.url);
-    manager.destroy();
+    const data = await this._buildDeck(commander.url);
 
     return new TappedOutDeck(data);
   }
@@ -75,26 +71,20 @@ export default class TappedOutService {
    * @param {Commander} commander
    * @returns {Promise<TappedOutLinkList>}
    */
-  static async getSimilarLinks(commander) {
+  async getSimilarLinks(commander) {
     const timeout = new CacheTimeout({ days: 7 });
-    const db = new NeDB(Collection.LINKS);
-
-    const cached = await db.find({ commander: commander.url });
+    const cached = await this._links.find({ commander: commander.url });
 
     if (cached && timeout.isOK(cached.created)) {
       return new TappedOutLinkList(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found links in database with expired timeout:", commander.url);
-      await db.remove({ commander: commander.url });
+      await this._links.remove({ commander: commander.url });
     }
 
     console.log("searching for links on tapped out:", commander.url);
-
-    const manager = new PuppeteerManager();
-    await manager.init();
-    const data = await TappedOutService._buildSimilarLinks(manager, commander);
-
-    await db.insert(data);
+    const data = await this._buildSimilarLinks(commander);
+    await this._links.insert(data);
 
     return new TappedOutLinkList(data);
   }
@@ -103,29 +93,21 @@ export default class TappedOutService {
    * @param {string} url
    * @returns {Promise<TappedOutDeck>}
    */
-  static async getDeck(url) {
+  async getDeck(url) {
     const timeout = new CacheTimeout({ days: 7 });
-    const db = new NeDB(Collection.DECKS);
-
-    const cached = await db.find({ url });
+    const cached = await this._decks.find({ url });
 
     if (cached && timeout.isOK(cached.created)) {
       return new TappedOutDeck(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found deck in database with expired timeout:", url);
-      await db.remove({ url });
+      await this._decks.remove({ url });
     }
 
-    console.log("searching for deck on tapped out:", url);
-
     try {
-      const manager = new PuppeteerManager();
-      await manager.init();
-
-      const data = await TappedOutService._buildDeck(manager, url);
-      manager.destroy();
-
-      await db.insert(data);
+      console.log("searching for deck on tapped out:", url);
+      const data = await this._buildDeck(url);
+      await this._decks.insert(data);
 
       return new TappedOutDeck(data);
     } catch (err) {
@@ -134,25 +116,25 @@ export default class TappedOutService {
   }
 
   /**
-   * @param {PuppeteerManager} manager
    * @param {string} url
    * @param {TappedOutAccount} account
    * @returns {Promise<{url: string, name: string, queryString: string}>}
    * @private
    */
-  static async _buildCommander(manager, url, account) {
-    await TappedOutService._login(manager, account);
+  async _buildCommander(url, account) {
+    await super._init();
+    await this._login(account);
 
-    await manager.goto({
+    await this._manager.goto({
       url,
       waitForSelector: Selector.CARD,
     });
 
-    await manager.page.click(Selector.COMMANDER);
-    await manager.page.waitForSelector(Selector.COMMANDER_NAME, { visible: true });
-    const element = await manager.page.$(Selector.COMMANDER_NAME);
+    await this._manager.page.click(Selector.COMMANDER);
+    await this._manager.page.waitForSelector(Selector.COMMANDER_NAME, { visible: true });
+    const element = await this._manager.page.$(Selector.COMMANDER_NAME);
 
-    let name = await manager.getElementText(element);
+    let name = await this._manager.getElementText(element);
 
     name = name.replace(/\s{2,}/g, "");
     name = name.replace(/\n/g, "");
@@ -167,12 +149,13 @@ export default class TappedOutService {
   }
 
   /**
-   * @param {PuppeteerManager} manager
    * @param {Commander} commander
    * @returns {Promise<{commander: string, links: Array<string>}>}
    * @private
    */
-  static async _buildSimilarLinks(manager, commander) {
+  async _buildSimilarLinks(commander) {
+    await super._init();
+
     const baseUrl = `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commander.queryString}&price_0=&price_1=&o=-rating&submit=Filter+results`;
     const pages = [ 1, 2, 3 ];
     const links = [];
@@ -182,15 +165,15 @@ export default class TappedOutService {
       await RateLimit.tappedOut();
 
       try {
-        await manager.goto({
+        await this._manager.goto({
           url: searchUrl,
           waitForSelector: Selector.DECK_LINK,
         });
 
-        const elements = await manager.page.$$(Selector.DECK_LINK);
+        const elements = await this._manager.page.$$(Selector.DECK_LINK);
 
         for (const element of elements) {
-          const href = await manager.getElementAttribute(element, "href");
+          const href = await this._manager.getElementAttribute(element, "href");
           const link = `https://tappedout.net${href}`;
           console.log("found similar link:", link);
           links.push(link);
@@ -201,18 +184,17 @@ export default class TappedOutService {
       }
     }
 
-    await manager.destroy();
-
     return { commander: commander.url, links };
   }
 
   /**
-   * @param {PuppeteerManager} manager
    * @param {string} url
    * @returns {Promise<{url: string, cards: Array<Card>}>}
    * @private
    */
-  static async _buildDeck(manager, url) {
+  async _buildDeck(url) {
+    await super._init();
+
     const cards = [];
     let retry = 0;
 
@@ -220,26 +202,26 @@ export default class TappedOutService {
       await RateLimit.tappedOut();
 
       try {
-        await manager.goto({
+        await this._manager.goto({
           url,
           waitForSelector: Selector.CARD,
         });
 
-        const parents = await manager.page.$$(Selector.CARD_LIST);
+        const parents = await this._manager.page.$$(Selector.CARD_LIST);
         const mainBoard = parents[0];
         const cardItems = await mainBoard.$$(Selector.MEMBER);
 
         for (const item of cardItems) {
           const card = await item.$(Selector.CARD);
-          let name = await manager.getElementAttribute(card, "data-name");
-          let amount = await manager.getElementAttribute(card, "data-qty");
-          amount = parseInt(amount, 10);
+          const amountString = await this._manager.getElementAttribute(card, "data-qty");
+          let name = await this._manager.getElementAttribute(card, "data-name");
+          const amount = parseInt(amountString, 10);
 
           const flip = await item.$$(Selector.CARD_LINK);
 
           if (flip.length > 1) {
             const flipLink = flip[1];
-            const flipName = await manager.getElementAttribute(flipLink, "data-name");
+            const flipName = await this._manager.getElementAttribute(flipLink, "data-name");
             if (flipName) {
               name = `${name} // ${flipName}`;
             }
@@ -257,21 +239,25 @@ export default class TappedOutService {
   }
 
   /**
-   * @param {PuppeteerManager} manager
    * @param {TappedOutAccount} account
    * @returns {Promise<void>}
    * @private
    */
-  static async _login(manager, account) {
-    console.log("logging in:", account.username);
+  async _login(account) {
+    if (this._loggedIn) return;
 
-    await manager.goto({
+    await super._init();
+
+    console.log("logging in:", account.username);
+    await this._manager.goto({
       url: "https://tappedout.net/accounts/login/?next=/",
       waitForSelector: Selector.USERNAME,
     });
-    await manager.page.type(Selector.USERNAME, account.username);
-    await manager.page.type(Selector.PASSWORD, account.password);
-    await manager.page.click(Selector.SUBMIT);
-    await manager.page.waitForSelector(Selector.LOGGED_IN, { visible: true });
+    await this._manager.page.type(Selector.USERNAME, account.username);
+    await this._manager.page.type(Selector.PASSWORD, account.password);
+    await this._manager.page.click(Selector.SUBMIT);
+    await this._manager.page.waitForSelector(Selector.LOGGED_IN, { visible: true });
+
+    this._loggedIn = true;
   }
 }

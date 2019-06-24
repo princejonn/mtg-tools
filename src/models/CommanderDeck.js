@@ -1,150 +1,187 @@
-import { filter, find } from "lodash";
-import TappedOutDeck from "models/TappedOutDeck";
+import { cloneDeep, filter, find, includes } from "lodash";
 import ArraySort, { SortBy } from "utils/ArraySort";
+import ScryfallService from "../services/ScryfallService";
+
+const Types = {
+  artifact: 0,
+  creature: 0,
+  enchantment: 0,
+  instant: 0,
+  sorcery: 0,
+  basicLands: 0,
+  lands: 0,
+};
 
 export default class CommanderDeck {
-  /**
-   * @param {TappedOutDeck} tappedOutDeck
-   */
-  constructor(tappedOutDeck) {
+  constructor() {
     this.cards = [];
-    this.length = tappedOutDeck.cards.length;
+    this.types = cloneDeep(Types);
     this.tappedOut = {
       decks: [],
-      added: 1,
+      added: 0,
+      types: cloneDeep(Types),
     };
     this.isCalculated = false;
+  }
 
-    tappedOutDeck.calculateTypes();
-    this.types = tappedOutDeck.types;
+  /**
+   * @param {TappedOutDeck} deck
+   */
+  async addCommanderDeck(deck) {
+    const { cards } = deck;
 
-    for (const card of tappedOutDeck.cards) {
+    for (const data of cards) {
+      const card = await ScryfallService.findCard(data.name);
+      const existingCard = find(this.cards, { id: card.id });
+
+      if (existingCard) {
+        throw new Error("trying to add more of the same card in a commander deck");
+      }
+
+      this._sumCardType(this.types, card, data);
+
       card.isCommander = true;
+      card.setEDHRec(data.edhRec);
+      card.addTappedOut(data.tappedOut);
+
       this.cards.push(card);
     }
   }
 
   /**
-   * @param {TappedOutDeck} tappedOutDeck
+   * @param {TappedOutDeck} deck
+   * @returns {Promise<void>}
    */
-  addDeck(tappedOutDeck) {
-    this.tappedOut.added += 1;
+  async addTappedOutDeck(deck) {
+    const { url, cards } = deck;
+    const array = [];
     let similarity = 0;
-    const { cards } = tappedOutDeck;
 
-    for (const card of cards) {
+    for (const data of cards) {
+      const card = await ScryfallService.findCard(data.name);
       const existingCard = find(this.cards, { id: card.id });
 
+      array.push({
+        id: card.id,
+        typeLine: card.typeLine,
+        amount: data.tappedOut.amount,
+      });
+
+      this._sumCardType(this.tappedOut.types, card, data);
+
       if (existingCard) {
-        existingCard.isTappedOut = true;
-        existingCard.addTappedOutAmount(card.tappedOut.amount);
+        existingCard.addTappedOut(data.tappedOut);
         similarity += 1;
-      } else {
-        card.isTappedOut = true;
-        this.cards.push(card);
+        continue;
       }
+
+      card.addTappedOut(data.tappedOut);
+      this.cards.push(card);
     }
 
-    tappedOutDeck.similarity = Math.floor((similarity / (this.length + cards.length)) * 1000) / 10;
-    this.tappedOut.decks.push(tappedOutDeck);
+    similarity = Math.floor((similarity / (this.cards.length + cards.length)) * 1000) / 10;
+
+    this.tappedOut.added += 1;
+    this.tappedOut.decks.push({
+      url,
+      similarity,
+      cards: array,
+    });
   }
 
   /**
-   * @param {EDHRecRecommendation} edhRecRecommendation
+   * @param {EDHRecRecommendation} recommendation
+   * @returns {Promise<void>}
    */
-  addRecommendation(edhRecRecommendation) {
-    const { cards } = edhRecRecommendation;
+  async addEDHRecommendation(recommendation) {
+    const { cards } = recommendation;
 
-    for (const card of cards) {
+    for (const data of cards) {
+      const card = await ScryfallService.findCard(data.name);
       const existingCard = find(this.cards, { id: card.id });
 
       if (existingCard) {
-        existingCard.isEDHRec = true;
-        existingCard.setEdhRec(card.edhRec);
-      } else {
-        card.isEDHRec = true;
-        this.cards.push(card);
+        existingCard.setEDHRec(data.edhRec);
+        continue;
       }
+
+      card.setEDHRec(data.edhRec);
+      this.cards.push(card);
     }
-  }
-
-  calculate() {
-    if (this.isCalculated) return;
-
-    for (const card of this.cards) {
-      card.calculatePercent(this.tappedOut.added);
-    }
-
-    for (const deck of this.tappedOut.decks) {
-      deck.calculateTypes();
-    }
-
-    this.isCalculated = true;
   }
 
   /**
    * @returns {Array<Card>}
    */
   getMostRecommendedCards() {
-    this.calculate();
-    const cards = filter(this.cards, {
-      isCommander: false,
-      isEDHRec: true,
-    });
-    return ArraySort.sortProperty(cards, "edhRec.percent", SortBy.DESCENDING);
-  }
+    this._calculate();
 
-  /**
-   * @returns {Array<Card>}
-   */
-  getMostPopularCards() {
-    this.calculate();
-    const cards = filter(this.cards, {
-      isCommander: false,
-      isTappedOut: true,
-    });
-    return ArraySort.sortProperty(cards, "tappedOut.percent", SortBy.DESCENDING);
-  }
+    const cards = filter(this.cards, { isCommander: false });
 
-  /**
-   * @returns {TappedOutDeck}
-   */
-  getMostSimilarDeck() {
-    this.calculate();
-    const decks = ArraySort.sortProperty(this.tappedOut.decks, "similarity", SortBy.DESCENDING);
-    const deck = decks[0];
-    const { id, url, similarity } = deck;
-    const array = [];
-
-    for (const card of deck.cards) {
-      const alreadyPushed = find(array, { id: card.id });
-      if (alreadyPushed) continue;
-
-      const existingCard = find(this.cards, { id: card.id });
-
-      if (!existingCard) {
-        throw new Error("could not find card");
-      }
-
-      if (existingCard.isCommander) continue;
-
-      card.setEdhRec(existingCard.edhRec);
-      card.setTappedOut(existingCard.tappedOut);
-      card.calculatePercent(this.tappedOut.added);
-      array.push(card);
-    }
-
-    const cards = ArraySort.sortProperty(array, "tappedOut.percent", SortBy.DESCENDING);
-
-    return new TappedOutDeck({ id, url, similarity, cards });
+    return ArraySort.sortProperty(cards, "percent", SortBy.DESCENDING);
   }
 
   /**
    * @returns {Array<Card>}
    */
   getLeastPopularCardsInDeck() {
-    this.calculate();
+    this._calculate();
+
     const cards = filter(this.cards, { isCommander: true });
-    return ArraySort.sortProperty(cards, "tappedOut.percent", SortBy.ASCENDING);
+
+    return ArraySort.sortProperty(cards, "percent", SortBy.ASCENDING);
+  }
+
+  /**
+   * @private
+   */
+  _calculate() {
+    if (this.isCalculated) return;
+
+    for (const card of this.cards) {
+      card.calculatePercent(this.tappedOut.added);
+    }
+
+    const types = cloneDeep(Types);
+    for (const key in types) {
+      if (!types.hasOwnProperty(key)) continue;
+      types[key] = Math.floor(this.tappedOut.types[key] / this.tappedOut.added);
+    }
+
+    this.averageTypes = types;
+    this.isCalculated = true;
+  }
+
+  /**
+   * @param {object} path
+   * @param {Card} card
+   * @param {object} data
+   * @private
+   */
+  _sumCardType(path, card, data) {
+    const typeLine = card.typeLine.toLowerCase();
+    const { amount } = data.tappedOut;
+
+    if (includes(typeLine, "artifact")) {
+      path.artifact += amount;
+    }
+    if (includes(typeLine, "creature")) {
+      path.creature += amount;
+    }
+    if (includes(typeLine, "enchantment")) {
+      path.enchantment += amount;
+    }
+    if (includes(typeLine, "instant")) {
+      path.instant += amount;
+    }
+    if (includes(typeLine, "sorcery")) {
+      path.sorcery += amount;
+    }
+    if (includes(typeLine, "land") && includes(typeLine, "basic")) {
+      path.basicLands += amount;
+    }
+    if (includes(typeLine, "land") && !includes(typeLine, "basic")) {
+      path.lands += amount;
+    }
   }
 }

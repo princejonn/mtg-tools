@@ -1,8 +1,8 @@
 import { includes } from "lodash";
 import EDHRecThemeList from "models/EDHRecThemeList";
 import EDHRecRecommendation from "models/EDHRecRecommendation";
+import BasePage from "pages/BasePage";
 import CacheTimeout from "utils/CacheTimeout";
-import PuppeteerManager from "utils/PuppeteerManager";
 import RateLimit from "utils/RateLimit";
 import NeDB, { Collection } from "../utils/NeDB";
 
@@ -12,32 +12,31 @@ const Selector = {
   CARD_DESC: "div.nwdesc",
 };
 
-export default class EDHRecService {
+export default class EDHRec extends BasePage {
+  constructor() {
+    super();
+    this._themes = new NeDB(Collection.THEMES);
+    this._recommendations = new NeDB(Collection.RECOMMENDATIONS);
+  }
+
   /**
    * @param {Commander} commander
    * @returns {Promise<EDHRecThemeList>}
    */
-  static async getThemeList(commander) {
+  async getThemeList(commander) {
     const timeout = new CacheTimeout({ days: 14 });
-    const db = new NeDB(Collection.THEMES);
-
-    const cached = await db.find({ commander: commander.url });
+    const cached = await this._themes.find({ commander: commander.url });
 
     if (cached && timeout.isOK(cached.created)) {
       return new EDHRecThemeList(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found themes in database with expired timeout:", commander.url);
-      await db.remove({ commander: commander.url });
+      await this._themes.remove({ commander: commander.url });
     }
 
     console.log("searching for themes on edhrec:", commander.url);
-
-    const manager = new PuppeteerManager();
-    await manager.init();
-    const data = await EDHRecService._buildThemes(manager, commander);
-    manager.destroy();
-
-    await db.insert(data);
+    const data = await this._buildThemes(commander);
+    await this._themes.insert(data);
 
     return new EDHRecThemeList(data);
   }
@@ -46,45 +45,39 @@ export default class EDHRecService {
    * @param {EDHRecTheme} theme
    * @returns {Promise<EDHRecRecommendation>}
    */
-  static async getRecommendation(theme) {
+  async getRecommendation(theme) {
     const timeout = new CacheTimeout({ days: 14 });
-    const db = new NeDB(Collection.RECOMMENDATIONS);
-
-    const cached = await db.find({ url: theme.url });
+    const cached = await this._recommendations.find({ url: theme.url });
 
     if (cached && timeout.isOK(cached.created)) {
       return new EDHRecRecommendation(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found commander recommendation in database with expired timeout:", theme.url);
-      await db.remove({ url: theme.url });
+      await this._recommendations.remove({ url: theme.url });
     }
 
     console.log("searching for commander recommendation on edhrec:", theme.url);
-
-    const manager = new PuppeteerManager();
-    await manager.init();
-    const data = await EDHRecService._buildRecommendation(manager, theme);
-    manager.destroy();
-
-    await db.insert(data);
+    const data = await this._buildRecommendation(theme);
+    await this._recommendations.insert(data);
 
     return new EDHRecRecommendation(data);
   }
 
   /**
-   * @param {PuppeteerManager} manager
    * @param {Commander} commander
    * @returns {Promise<{commander: string, themes: Array<{theme: string, link: string, type: string}>}>}
    * @private
    */
-  static async _buildThemes(manager, commander) {
+  async _buildThemes(commander) {
+    await super._init();
+
     const themes = [];
 
     const themeSelector = `a[href^="${commander.queryString}-"]`;
     const commanderUrl = `https://edhrec.com/commanders/${commander.queryString}`;
 
     await RateLimit.edhRec();
-    await manager.goto({
+    await this._manager.goto({
       url: commanderUrl,
       waitForSelector: themeSelector,
     });
@@ -92,11 +85,11 @@ export default class EDHRecService {
     let num = 0;
     themes.push({ theme: "no theme/budget", url: commanderUrl, type: "none", num });
 
-    const elements = await manager.page.$$(themeSelector);
+    const elements = await this._manager.page.$$(themeSelector);
     for (const element of elements) {
-      const href = await manager.getElementAttribute(element, "href");
+      const href = await this._manager.getElementAttribute(element, "href");
 
-      let theme = await manager.getElementText(element);
+      let theme = await this._manager.getElementText(element);
       theme = theme.replace(/\s{2,}/g, "");
       theme = theme.replace(/\n/g, "");
 
@@ -118,12 +111,13 @@ export default class EDHRecService {
   }
 
   /**
-   * @param {PuppeteerManager} manager
    * @param {EDHRecTheme} theme
    * @returns {Promise<{url: string, cards: Array<Card>}>}
    * @private
    */
-  static async _buildRecommendation(manager, theme) {
+  async _buildRecommendation(theme) {
+    await super._init();
+
     const cards = [];
 
     const regexDecksPercent = /(\d+\%.*of)/;
@@ -132,18 +126,18 @@ export default class EDHRecService {
     const numbers = /\d+\.?\d*/;
 
     await RateLimit.edhRec();
-    await manager.goto({
+    await this._manager.goto({
       url: theme.url,
       waitForSelector: Selector.CARD_ELEMENT,
     });
 
-    const elements = await manager.page.$$(Selector.CARD_ELEMENT);
+    const elements = await this._manager.page.$$(Selector.CARD_ELEMENT);
     for (const element of elements) {
       const nameElement = await element.$(Selector.CARD_NAME);
       const descElement = await element.$(Selector.CARD_DESC);
 
-      const name = await manager.getElementText(nameElement);
-      const desc = await manager.getElementText(descElement);
+      const name = await this._manager.getElementText(nameElement);
+      const desc = await this._manager.getElementText(descElement);
 
       const inPercentOfDecks = desc.match(regexDecksPercent)[0];
       const inPercentOfDecksDigits = parseInt(inPercentOfDecks.match(numbers)[0], 10);

@@ -1,10 +1,10 @@
 import { includes } from "lodash";
 import CommanderDeck from "models/CommanderDeck";
 import TappedOutAccount from "models/TappedOutAccount";
-import EDHRecService from "services/EDHRecService";
+import EDHRec from "pages/EDHRec";
+import TappedOut from "pages/TappedOut";
 import ReadLineService from "services/ReadLineService";
 import ReporterService from "services/ReporterService";
-import TappedOutService from "services/TappedOutService";
 
 export default class Improve {
   constructor(url, username, password) {
@@ -16,22 +16,32 @@ export default class Improve {
   }
 
   async main() {
-    const commander = await TappedOutService.getCommander(this.url, this.account);
-    const themeList = await EDHRecService.getThemeList(commander);
-    const theme = await ReadLineService.selectTheme(themeList);
-    const recommendation = await EDHRecService.getRecommendation(theme);
-    const coDeck = await TappedOutService.getCommanderDeck(commander, this.account);
-    const linkList = await TappedOutService.getSimilarLinks(commander);
+    const edhRec = new EDHRec();
+    const tappedOut = new TappedOut();
+    const decks = [];
 
-    const commanderDeck = new CommanderDeck(coDeck);
+    const commander = await tappedOut.getCommander(this.url, this.account);
+    const themeList = await edhRec.getThemeList(commander);
+    const theme = await ReadLineService.selectTheme(themeList);
+    const recommendation = await edhRec.getRecommendation(theme);
+    const linkList = await tappedOut.getSimilarLinks(commander);
 
     for (const link of linkList.links) {
-      const toDeck = await TappedOutService.getDeck(link);
-      if (!toDeck) continue;
-      commanderDeck.addDeck(toDeck);
+      const deck = await tappedOut.getDeck(link);
+      if (!deck) continue;
+      decks.push(deck);
     }
 
-    commanderDeck.addRecommendation(recommendation);
+    const cmdDeck = await tappedOut.getCommanderDeck(commander, this.account);
+
+    console.log("finalizing deck");
+    const commanderDeck = new CommanderDeck();
+    await commanderDeck.addCommanderDeck(cmdDeck);
+    await commanderDeck.addEDHRecommendation(recommendation);
+
+    for (const deck of decks) {
+      await commanderDeck.addTappedOutDeck(deck);
+    }
 
     await ReporterService.buildImproveReport(commander, commanderDeck);
   }

@@ -22,8 +22,6 @@ export default class ReporterService {
 
     const content = [];
     content.push(HTMLService.getRecommendation(commanderDeck, 16));
-    content.push(HTMLService.getPopular(commanderDeck, 16));
-    content.push(HTMLService.getMostSimilar(commanderDeck, 12));
     content.push(HTMLService.getLeastPopular(commanderDeck, 12));
 
     const file = path.join(cwd, `improve-${commander.queryString}-${now}.html`);

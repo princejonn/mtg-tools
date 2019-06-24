@@ -11,6 +11,7 @@ export default class Card {
     this.colors = data.colors;
     this.manaCost = data.manaCost;
     this.uri = data.uri;
+    this.scryfallUri = data.scryfallUri;
 
     this.image = null;
 
@@ -21,8 +22,6 @@ export default class Card {
     }
 
     this.isCommander = false;
-    this.isEDHRec = false;
-    this.isTappedOut = false;
 
     this.edhRec = {
       amount: 0,
@@ -38,35 +37,22 @@ export default class Card {
   /**
    * @param {{amount: number, percent: number, synergy: number}} data
    */
-  setEdhRec(data) {
+  setEDHRec(data) {
     if (!data) {
-      throw new Error("trying to set edhRec data with no data");
+      return;
     }
 
-    this.isEDHRec = true;
     this.edhRec.amount = data.amount || this.edhRec.amount;
     this.edhRec.percent = data.percent || this.edhRec.percent;
     this.edhRec.synergy = data.synergy || this.edhRec.synergy;
   }
 
-  /**
-   * @param {{amount: number, percent: number}} data
-   */
-  setTappedOut(data) {
-    if (!data) {
-      throw new Error("trying to set tappedOut data with no data");
-    }
-
-    this.isTappedOut = true;
-    this.tappedOut.amount = data.amount || this.tappedOut.amount;
-    this.tappedOut.percent = data.percent || this.tappedOut.percent;
+  addTappedOut(data) {
+    this.tappedOut.amount += data.amount;
   }
 
-  /**
-   * @param {number} amount
-   */
-  addTappedOutAmount(amount = 1) {
-    this.tappedOut.amount += amount;
+  setTappedOut(data) {
+    this.tappedOut.amount = data.amount;
   }
 
   /**
@@ -74,5 +60,6 @@ export default class Card {
    */
   calculatePercent(addedDecks) {
     this.tappedOut.percent = Math.floor((this.tappedOut.amount / addedDecks) * 1000) / 10;
+    this.percent = Math.floor(((this.tappedOut.percent + this.edhRec.percent) / 200) * 1000) / 10;
   }
 }

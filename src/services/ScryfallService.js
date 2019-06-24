@@ -5,57 +5,33 @@ import request from "request-promise-native";
 import Card from "models/Card";
 import CacheTimeout from "utils/CacheTimeout";
 import Latinise from "utils/Latinise";
-import LowDB, { Table } from "utils/LowDB";
 import RateLimit from "utils/RateLimit";
+import NeDB, { Collection } from "../utils/NeDB";
 
 export default class ScryfallService {
-  /**
-   * @param {string} id
-   * @returns {Promise<Card>}
-   */
-  static async getCard(id) {
-    const timeout = new CacheTimeout({ years: 1 });
-    const db = new LowDB(Table.SCRYFALL_CARDS);
-
-    const cached = db.find({ id });
-    let data = {};
-
-    if (cached && timeout.isOK(cached.created)) {
-      return new Card(cached);
-    } if (cached && !timeout.isOK(cached.created)) {
-      console.log("found card in database with expired timeout. fetching from card uri on scryfall:", cached.uri);
-      db.remove(cached.id);
-      data = await ScryfallService._getCard(cached.uri);
-    }
-
-    if (!data) ScryfallService._saveToDb(db, data);
-
-    return new Card(data);
-  }
-
   /**
    * @param {string} name
    * @returns {Promise<Card>}
    */
   static async findCard(name) {
     const timeout = new CacheTimeout({ years: 1 });
-    const db = new LowDB(Table.SCRYFALL_CARDS);
+    const db = new NeDB(Collection.CARDS);
+    const cached = await ScryfallService._findInDb(db, name);
 
-    const cached = ScryfallService._findInDb(db, name);
     let data = {};
 
     if (cached && timeout.isOK(cached.created)) {
       return new Card(cached);
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found card in database with expired timeout. fetching from card uri on scryfall:", cached.uri);
-      db.remove(cached.id);
+      await db.remove({ id: cached.id });
       data = await ScryfallService._getCard(cached.uri);
     } else {
       console.log("searching for card on scryfall:", name);
       data = await ScryfallService._findCard(name);
     }
 
-    ScryfallService._saveToDb(db, data);
+    await ScryfallService._saveToDb(db, data);
 
     return new Card(data);
   }
@@ -94,6 +70,7 @@ export default class ScryfallService {
 
         for (const item of parsed.data) {
           item.name = Latinise(item.name);
+          item.aliases = [ item.name ];
           if (item.name !== name) continue;
           return humps(item);
         }
@@ -111,16 +88,16 @@ export default class ScryfallService {
   }
 
   /**
-   * @param {LowDB} db
+   * @param {NeDB} db
    * @param {Card} data
    * @private
    */
-  static _saveToDb(db, data) {
+  static async _saveToDb(db, data) {
     const { id } = data;
-    const exists = db.find({ id });
+    const exists = await db.find({ id });
 
     if (!exists) {
-      return db.push(data);
+      return db.insert(data);
     }
 
     if (!exists.uri === data.uri) {
@@ -131,31 +108,70 @@ export default class ScryfallService {
   }
 
   /**
-   * @param {LowDB} db
+   * @param {NeDB} db
    * @param {string} name
    * @returns {Card}
    * @private
    */
-  static _findInDb(db, name) {
-    name = Latinise(name);
-
-    const exists = db.find({ name });
+  static async _findInDb(db, name) {
+    const latinized = Latinise(name);
+    const exists = await db.find({ name: latinized });
 
     if (exists) {
       return exists;
     }
 
-    const array = [];
-    const table = db.get();
+    const table = await db.get();
 
     for (const card of table) {
-      if (!startsWith(card.name, "name")) continue;
-      array.push(card);
-    }
+      const aliases = card.aliases || [];
 
-    for (const card of array) {
-      if (!includes(card.name, "//")) continue;
-      return card;
+      if (includes(aliases, latinized)) {
+        return card;
+      }
+
+      const latinizedNoSpaces = latinized.replace(/\s/g, "");
+
+      if (includes(aliases, latinizedNoSpaces)) {
+        return card;
+      }
+
+      if (card.name.replace(/\s/g, "") === latinizedNoSpaces) {
+        aliases.push(latinizedNoSpaces);
+        await db.update({ id: card.id }, { aliases });
+        return card;
+      }
+
+      const latinizedParsed = queryString.parse(latinized);
+      const latinizedQueryString = queryString.stringify(latinizedParsed);
+
+      if (includes(aliases, latinizedQueryString)) {
+        return card;
+      }
+
+      const cardNameParsed = queryString.parse(card.name);
+      const cardNameQueryString = queryString.stringify(cardNameParsed);
+
+      if (latinizedQueryString === cardNameQueryString) {
+        aliases.push(latinizedQueryString);
+        await db.update({ id: card.id }, { aliases });
+        return card;
+      }
+
+      const n1 = latinized.replace(/\//g, "");
+      const n2 = card.name.replace(/\//g, "");
+
+      if (n1 === n2) {
+        aliases.push(latinized);
+        await db.update({ id: card.id }, { aliases });
+        return card;
+      }
+
+      if (startsWith(card.name, latinized)) {
+        aliases.push(latinized);
+        await db.update({ id: card.id }, { aliases });
+        return card;
+      }
     }
 
     return null;

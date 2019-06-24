@@ -7,7 +7,7 @@ export default class HTMLService {
   static buildReportHTML(commander, content) {
     let html = "<html><head>";
     html += HTMLService._buildStyle();
-    html += `<title>Report ${commander.name}</title></head><body>`;
+    html += `<title>Report - ${commander.name}</title></head><body>`;
     html += content.join("");
     html += "</body></html>";
     return html;
@@ -22,20 +22,7 @@ export default class HTMLService {
     const cards = commanderDeck.getMostRecommendedCards();
     const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
 
-    return (`<header class="card-list-header">Recommendation from EDHRec</header>
-    <section class="card-list">${array.join("")}</section>`);
-  }
-
-  /**
-   * @param {CommanderDeck} commanderDeck
-   * @param {number} maximum
-   * @returns {string}
-   */
-  static getPopular(commanderDeck, maximum) {
-    const cards = commanderDeck.getMostPopularCards();
-    const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
-
-    return (`<header class="card-list-header">Suggestions from TappedOut</header>
+    return (`<header class="card-list-header font-large">Recommendation from EDHRec</header>
     <section class="card-list">${array.join("")}</section>`);
   }
 
@@ -48,22 +35,7 @@ export default class HTMLService {
     const cards = commanderDeck.getLeastPopularCardsInDeck();
     const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
 
-    return (`<header class="card-list-header">Consider removing these cards</header>
-    <section class="card-list">${array.join("")}</section>`);
-  }
-
-  /**
-   * @param {CommanderDeck} commanderDeck
-   * @param {number} maximum
-   * @returns {string}
-   */
-  static getMostSimilar(commanderDeck, maximum) {
-    const deck = commanderDeck.getMostSimilarDeck();
-    const { url, cards, similarity } = deck;
-    const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
-
-    return (`<header class="card-list-header">Most similar deck (${similarity}%)</header>
-    <div class="card-list-header-sub"><a href="${url}" target="_blank">link</a></div>
+    return (`<header class="card-list-header font-large">Consider removing these cards</header>
     <section class="card-list">${array.join("")}</section>`);
   }
 
@@ -76,16 +48,11 @@ export default class HTMLService {
     const array = [];
     for (const card of cards) {
       array.push(`<div class="card-container" data-id="${card.id}"> 
-    <div class="card-image"><img class="card-image-img" src="${card.image}" alt="${card.name}"/></div>
-    <div class="card-data">
-        <div class="card-data-col">TappedOut <span>${card.tappedOut.percent}%</span></div>
-        <div class="card-data-col">EDHRec <span>${card.edhRec.percent}%</span></div>
-    </div>
-    <div class="card-data">
-        <div class="card-data-col">TappedOut #<span>${card.tappedOut.amount}</span></div>
-        <div class="card-data-col">EDHRec #<span>${card.edhRec.amount}</span></div>
-    </div>
-</div>`);
+<div class="card-image"><a href="${card.scryfallUri}" target="_blank"><img class="card-image-img" src="${card.image}" alt="${card.name}"/></a></div>
+<div class="card-data"><div class="card-data-row">
+<div class="card-data-col font-large">${card.percent}%</div></div><div class="card-data-row">
+<div class="card-data-col font-small">TappedOut <span>${card.tappedOut.percent}%</span></div>
+<div class="card-data-col font-small">EDHRec <span>${card.edhRec.percent}%</span></div></div></div></div>`);
     }
     return array;
   }
@@ -99,18 +66,17 @@ export default class HTMLService {
 <style>
 * {
   font-family: "Roboto", "Arial", sans-serif;
+  font-size: 10px;
   margin: 0;
   padding: 0;
 }
 .card-list-header {
-  font-size: 22pt;
   padding-top: 30px;
   padding-bottom: 5px;
   text-align: center;
 }
 .card-list-header-sub {
-  font-size: 16pt;
-  padding-top: 30px;
+  padding-top: 20px;
   padding-bottom: 5px;
   text-align: center;
 }
@@ -130,15 +96,34 @@ export default class HTMLService {
 .card-data {
   display: flex;
   justify-content: space-between;
+  flex-direction: row;
+}
+.card-data-row {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: column;
+  text-align: right;
 }
 .card-data-col {
   color: darkgray;
-  padding-right: 8px;
-  padding-left: 8px;
-  font-size: 8pt;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-left: 9px;
+  padding-right: 9px;
+  justify-content: space-between;
 }
 .card-data-col span {
   font-weight: bold;
+}
+.font-large {
+  font-size: 22pt;
+  font-weight: bold;
+}
+.font-medium {
+  font-size: 16pt;
+}
+.font-small {
+  font-size: 8pt;
 }
 </style>`);
   }

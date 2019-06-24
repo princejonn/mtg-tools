@@ -1,6 +1,6 @@
 export default class TappedOutLinkList {
   constructor(data) {
-    this.id = data.id;
+    this.commander = data.commander;
     this.links = data.links;
   }
 }

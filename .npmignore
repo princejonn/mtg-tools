@@ -18,3 +18,4 @@ webpack.npm.js
 webpack.npm.debug.js
 webpack.prod.js
 db*.json
+*.db

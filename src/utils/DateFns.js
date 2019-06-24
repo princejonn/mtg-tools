@@ -3,7 +3,7 @@ import { parseFromTimeZone } from "date-fns-timezone";
 
 export default class DateFns {
   /**
-   * @param {Date} date
+   * @param {Date} [date]
    * @returns {Date}
    */
   static get(date = new Date()) {
@@ -11,11 +11,11 @@ export default class DateFns {
   }
 
   /**
-   * @param {Date} date
-   * @param {string} format
+   * @param {Date} [date]
+   * @param {string} [format]
    * @returns {string}
    */
-  static format(date, format) {
+  static format(date = DateFns.now(), format = "YYYY-MM-DDTHH:mm:ss.SSS") {
     return dateFns.format(date, format);
   }
 
