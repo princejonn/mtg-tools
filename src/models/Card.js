@@ -28,6 +28,7 @@ export default class Card {
       percent: 0,
       synergy: 0,
     };
+
     this.tappedOut = {
       amount: 0,
       percent: 0,
@@ -38,20 +39,19 @@ export default class Card {
    * @param {{amount: number, percent: number, synergy: number}} data
    */
   setEDHRec(data) {
-    if (!data) {
-      return;
-    }
-
+    if (!data) return;
     this.edhRec.amount = data.amount || this.edhRec.amount;
     this.edhRec.percent = data.percent || this.edhRec.percent;
     this.edhRec.synergy = data.synergy || this.edhRec.synergy;
   }
 
   addTappedOut(data) {
+    if (!data) return;
     this.tappedOut.amount += data.amount;
   }
 
   setTappedOut(data) {
+    if (!data) return;
     this.tappedOut.amount = data.amount;
   }
 

@@ -4,7 +4,9 @@ import EDHRecRecommendation from "models/EDHRecRecommendation";
 import BasePage from "pages/BasePage";
 import CacheTimeout from "utils/CacheTimeout";
 import RateLimit from "utils/RateLimit";
-import NeDB, { Collection } from "../utils/NeDB";
+import NeDB, { Collection } from "utils/NeDB";
+import ScryfallCache from "utils/ScryfallCache";
+import TimerMessage from "utils/TimerMessage";
 
 const Selector = {
   CARD_ELEMENT: "div#cardlists div.nw",
@@ -56,7 +58,6 @@ export default class EDHRec extends BasePage {
       await this._recommendations.remove({ url: theme.url });
     }
 
-    console.log("searching for commander recommendation on edhrec:", theme.url);
     const data = await this._buildRecommendation(theme);
     await this._recommendations.insert(data);
 
@@ -70,6 +71,8 @@ export default class EDHRec extends BasePage {
    */
   async _buildThemes(commander) {
     await super._init();
+
+    const timerMessage = new TimerMessage("finding themes");
 
     const themes = [];
 
@@ -107,6 +110,8 @@ export default class EDHRec extends BasePage {
       themes.push({ ...object, type, num });
     }
 
+    timerMessage.done();
+
     return { commander: commander.url, themes };
   }
 
@@ -117,6 +122,8 @@ export default class EDHRec extends BasePage {
    */
   async _buildRecommendation(theme) {
     await super._init();
+
+    const timerMessage = new TimerMessage("finding recommendation");
 
     const cards = [];
 
@@ -134,9 +141,12 @@ export default class EDHRec extends BasePage {
     const elements = await this._manager.page.$$(Selector.CARD_ELEMENT);
     for (const element of elements) {
       const nameElement = await element.$(Selector.CARD_NAME);
-      const descElement = await element.$(Selector.CARD_DESC);
-
       const name = await this._manager.getElementText(nameElement);
+
+      const card = await ScryfallCache.find(name);
+      if (!card.id) continue;
+
+      const descElement = await element.$(Selector.CARD_DESC);
       const desc = await this._manager.getElementText(descElement);
 
       const inPercentOfDecks = desc.match(regexDecksPercent)[0];
@@ -156,8 +166,10 @@ export default class EDHRec extends BasePage {
       const synergy = parseFloat(`${plusMinusSynergy}${synergyInDecksDigits}`);
       const percent = inPercentOfDecksDigits;
 
-      cards.push({ name, edhRec: { amount, percent, synergy } });
+      cards.push({ id: card.id, edhRec: { amount, percent, synergy } });
     }
+
+    timerMessage.done();
 
     return { url: theme.url, cards };
   }

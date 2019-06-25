@@ -5,6 +5,8 @@ import BasePage from "pages/BasePage";
 import CacheTimeout from "utils/CacheTimeout";
 import NeDB, { Collection } from "utils/NeDB";
 import RateLimit from "utils/RateLimit";
+import ScryfallCache from "utils/ScryfallCache";
+import TimerMessage from "utils/TimerMessage";
 
 const Selector = {
   USERNAME: "input#id_username",
@@ -58,12 +60,11 @@ export default class TappedOut extends BasePage {
    * @returns {Promise<TappedOutDeck>}
    */
   async getCommanderDeck(commander, account) {
+    const timerMessage = new TimerMessage("finding commander deck");
     await super._init();
     await this._login(account);
-
-    console.log("searching for commander deck on tapped out:", commander.url);
     const data = await this._buildDeck(commander.url);
-
+    timerMessage.done();
     return new TappedOutDeck(data);
   }
 
@@ -105,7 +106,6 @@ export default class TappedOut extends BasePage {
     }
 
     try {
-      console.log("searching for deck on tapped out:", url);
       const data = await this._buildDeck(url);
       await this._decks.insert(data);
 
@@ -124,6 +124,8 @@ export default class TappedOut extends BasePage {
   async _buildCommander(url, account) {
     await super._init();
     await this._login(account);
+
+    const timerMessage = new TimerMessage("finding commander");
 
     await this._manager.goto({
       url,
@@ -145,6 +147,8 @@ export default class TappedOut extends BasePage {
       .replace(/\,/g, "")
       .toLowerCase();
 
+    timerMessage.done();
+
     return { name, url, queryString };
   }
 
@@ -155,6 +159,8 @@ export default class TappedOut extends BasePage {
    */
   async _buildSimilarLinks(commander) {
     await super._init();
+
+    const timerMessage = new TimerMessage("finding similar links");
 
     const baseUrl = `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commander.queryString}&price_0=&price_1=&o=-rating&submit=Filter+results`;
     const pages = [ 1, 2, 3 ];
@@ -175,7 +181,6 @@ export default class TappedOut extends BasePage {
         for (const element of elements) {
           const href = await this._manager.getElementAttribute(element, "href");
           const link = `https://tappedout.net${href}`;
-          console.log("found similar link:", link);
           links.push(link);
         }
       } catch (err) {
@@ -183,6 +188,8 @@ export default class TappedOut extends BasePage {
         console.log(err);
       }
     }
+
+    timerMessage.done();
 
     return { commander: commander.url, links };
   }
@@ -194,6 +201,8 @@ export default class TappedOut extends BasePage {
    */
   async _buildDeck(url) {
     await super._init();
+
+    const timerMessage = new TimerMessage(`finding cards [ ${url} ]`);
 
     const cards = [];
     let retry = 0;
@@ -227,8 +236,13 @@ export default class TappedOut extends BasePage {
             }
           }
 
-          cards.push({ name, tappedOut: { amount } });
+          const cachedCard = await ScryfallCache.find(name);
+          if (!cachedCard.id) continue;
+
+          cards.push({ id: cachedCard.id, tappedOut: { amount } });
         }
+
+        timerMessage.done();
 
         return { url, cards };
       } catch (err) {
@@ -248,7 +262,8 @@ export default class TappedOut extends BasePage {
 
     await super._init();
 
-    console.log("logging in:", account.username);
+    const timerMessage = new TimerMessage("login");
+
     await this._manager.goto({
       url: "https://tappedout.net/accounts/login/?next=/",
       waitForSelector: Selector.USERNAME,
@@ -257,6 +272,8 @@ export default class TappedOut extends BasePage {
     await this._manager.page.type(Selector.PASSWORD, account.password);
     await this._manager.page.click(Selector.SUBMIT);
     await this._manager.page.waitForSelector(Selector.LOGGED_IN, { visible: true });
+
+    timerMessage.done();
 
     this._loggedIn = true;
   }

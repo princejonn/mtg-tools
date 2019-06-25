@@ -1,5 +1,6 @@
 __mocks__
 __tests__
+db
 node_modules
 src
 .idea
@@ -17,5 +18,3 @@ webpack.dev.js
 webpack.npm.js
 webpack.npm.debug.js
 webpack.prod.js
-db*.json
-*.db

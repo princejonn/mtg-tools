@@ -5,6 +5,7 @@
 /node_modules
 /reports
 /jspm_packages
+/db
 
 # Environment
 .env
@@ -28,5 +29,3 @@ pids
 .node_repl_history
 *.pid
 *.seed
-db*.json
-*.db

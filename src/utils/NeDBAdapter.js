@@ -2,11 +2,12 @@ import Datastore from "nedb";
 import DateFns from "utils/DateFns";
 
 export const Collection = {
-  CARDS: "cards",
+  ALIASES: "aliases",
   COMMANDERS: "commanders",
   DECKS: "decks",
   LINKS: "links",
   RECOMMENDATIONS: "recommendations",
+  SCRYFALL: "scryfall",
   THEMES: "themes",
 };
 
@@ -17,19 +18,15 @@ class NeDBAdapter {
     for (const key in Collection) {
       if (!Collection.hasOwnProperty(key)) continue;
       const collection = Collection[key];
-      this._db[collection] = new Datastore({ filename: `db-${collection}.db`, autoload: true });
+      this._db[collection] = new Datastore({ filename: `db/${collection}.db`, timestampData: true, autoload: true });
     }
   }
 
-  async get(collection) {
-    return new Promise((resolve, reject) => {
-      this._db[collection].find({}, (err, docs) => {
-        if (err) reject(err);
-        resolve(docs);
-      });
-    });
-  }
-
+  /**
+   * @param {string} collection
+   * @param {object} query
+   * @returns {Promise}
+   */
   async find(collection, query) {
     return new Promise((resolve, reject) => {
       this._db[collection].find(query, (err, docs) => {
@@ -39,6 +36,26 @@ class NeDBAdapter {
     });
   }
 
+  /**
+   * @param {string} collection
+   * @param {object} query
+   * @param sort
+   * @returns {Promise}
+   */
+  async findSort(collection, query, sort) {
+    return new Promise((resolve, reject) => {
+      this._db[collection].find(query).sort(sort).exec((err, docs) => {
+        if (err) reject(err);
+        resolve(docs);
+      });
+    });
+  }
+
+  /**
+   * @param {string} collection
+   * @param {object} data
+   * @returns {Promise}
+   */
   async insert(collection, data) {
     if (!Object.keys(data).length) {
       throw new Error("trying to push an empty data object");
@@ -58,6 +75,12 @@ class NeDBAdapter {
     });
   }
 
+  /**
+   * @param {string} collection
+   * @param {object} query
+   * @param {object} data
+   * @returns {Promise}
+   */
   async update(collection, query, data) {
     return new Promise((resolve, reject) => {
       this._db[collection].update(query, { $set: data }, {}, (err, result) => {
@@ -67,6 +90,11 @@ class NeDBAdapter {
     });
   }
 
+  /**
+   * @param {string} collection
+   * @param {object} query
+   * @returns {Promise}
+   */
   async remove(collection, query) {
     return new Promise((resolve, reject) => {
       this._db[collection].remove(query, {}, (err, result) => {

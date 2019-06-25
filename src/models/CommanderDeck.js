@@ -1,6 +1,6 @@
 import { cloneDeep, filter, find, includes } from "lodash";
 import ArraySort, { SortBy } from "utils/ArraySort";
-import ScryfallService from "../services/ScryfallService";
+import ScryfallCache from "utils/ScryfallCache";
 
 const Types = {
   artifact: 0,
@@ -31,7 +31,7 @@ export default class CommanderDeck {
     const { cards } = deck;
 
     for (const data of cards) {
-      const card = await ScryfallService.findCard(data.name);
+      const card = await ScryfallCache.getCard(data.id);
       const existingCard = find(this.cards, { id: card.id });
 
       if (existingCard) {
@@ -58,7 +58,7 @@ export default class CommanderDeck {
     let similarity = 0;
 
     for (const data of cards) {
-      const card = await ScryfallService.findCard(data.name);
+      const card = await ScryfallCache.getCard(data.id);
       const existingCard = find(this.cards, { id: card.id });
 
       array.push({
@@ -97,7 +97,7 @@ export default class CommanderDeck {
     const { cards } = recommendation;
 
     for (const data of cards) {
-      const card = await ScryfallService.findCard(data.name);
+      const card = await ScryfallCache.getCard(data.id);
       const existingCard = find(this.cards, { id: card.id });
 
       if (existingCard) {
