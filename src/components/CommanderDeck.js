@@ -1,6 +1,6 @@
 import { cloneDeep, filter, find, includes } from "lodash";
-import ArraySort, { SortBy } from "utils/ArraySort";
-import ScryfallCache from "utils/ScryfallCache";
+import arraySort, { SortBy } from "utils/ArraySort";
+import ScryfallCache from "instances/ScryfallCache";
 
 const Types = {
   artifact: 0,
@@ -21,6 +21,8 @@ export default class CommanderDeck {
       added: 0,
       types: cloneDeep(Types),
     };
+    this.averageTypes = {};
+    this.typeSuggestion = {};
     this.isCalculated = false;
   }
 
@@ -118,7 +120,7 @@ export default class CommanderDeck {
 
     const cards = filter(this.cards, { isCommander: false });
 
-    return ArraySort.sortProperty(cards, "percent", SortBy.DESCENDING);
+    return arraySort(cards, "percent", SortBy.DESCENDING);
   }
 
   /**
@@ -129,7 +131,13 @@ export default class CommanderDeck {
 
     const cards = filter(this.cards, { isCommander: true });
 
-    return ArraySort.sortProperty(cards, "percent", SortBy.ASCENDING);
+    return arraySort(cards, "percent", SortBy.ASCENDING);
+  }
+
+  getTypeSuggestion() {
+    this._calculate();
+
+    return this.typeSuggestion;
   }
 
   /**
@@ -148,8 +156,26 @@ export default class CommanderDeck {
       types[key] = Math.floor(this.tappedOut.types[key] / this.tappedOut.added);
     }
 
+    const add = {};
+    const remove = {};
+
+    for (const key in types) {
+      if (!types.hasOwnProperty(key)) continue;
+      const diff = types[key] - this.types[key];
+      if (diff > 0) {
+        add[key] = diff;
+      } else {
+        remove[key] = -diff;
+      }
+    }
+
+    this.typeSuggestion = { add, remove };
     this.averageTypes = types;
     this.isCalculated = true;
+
+    console.log(this.types);
+    console.log(this.averageTypes);
+    console.log(this.typeSuggestion);
   }
 
   /**

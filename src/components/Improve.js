@@ -1,5 +1,5 @@
 import { includes } from "lodash";
-import CommanderDeck from "models/CommanderDeck";
+import CommanderDeck from "components/CommanderDeck";
 import TappedOutAccount from "models/TappedOutAccount";
 import EDHRec from "pages/EDHRec";
 import TappedOut from "pages/TappedOut";

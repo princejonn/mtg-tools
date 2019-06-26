@@ -1,4 +1,4 @@
-import DateFns from "utils/DateFns";
+import DateFns from "components/DateFns";
 
 export default class CacheTimeout {
   /**

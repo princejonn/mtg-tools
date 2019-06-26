@@ -8,12 +8,12 @@ import humps from "lodash-humps";
 import * as queryString from "query-string";
 import request from "request-promise-native";
 import Card from "models/Card";
-import CacheTimeout from "utils/CacheTimeout";
-import DateFns from "utils/DateFns";
-import Latinise from "utils/Latinise";
-import NeDB, { Collection } from "utils/NeDB";
-import RateLimit from "utils/RateLimit";
-import TimerMessage from "utils/TimerMessage";
+import CacheTimeout from "components/CacheTimeout";
+import DateFns from "components/DateFns";
+import latinise from "utils/Latinise";
+import NeDB, { Collection } from "components/NeDB";
+import RateLimit from "components/RateLimit";
+import TimerMessage from "components/TimerMessage";
 
 class ScryfallCache {
   constructor() {
@@ -139,7 +139,7 @@ class ScryfallCache {
    */
   async _complexFind(name) {
     for (const card of this._cache) {
-      if (Latinise(name) === Latinise(card.name)) {
+      if (latinise(name) === latinise(card.name)) {
         return card;
       }
 
@@ -167,7 +167,7 @@ class ScryfallCache {
    * @private
    */
   static async _searchAPI(name) {
-    const parsedName = queryString.parse(Latinise(name));
+    const parsedName = queryString.parse(latinise(name));
     const query = queryString.stringify(parsedName);
     const url = `https://api.scryfall.com/cards/search?q=${query}`;
     let retry = 0;
@@ -182,7 +182,7 @@ class ScryfallCache {
         const parsed = JSON.parse(result);
 
         for (const item of parsed.data) {
-          if (Latinise(name) !== Latinise(item.name)) continue;
+          if (latinise(name) !== latinise(item.name)) continue;
           return item;
         }
 

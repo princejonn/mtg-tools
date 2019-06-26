@@ -2,11 +2,11 @@ import Commander from "models/Commander";
 import TappedOutDeck from "models/TappedOutDeck";
 import TappedOutLinkList from "models/TappedOutLinkList";
 import BasePage from "pages/BasePage";
-import CacheTimeout from "utils/CacheTimeout";
-import NeDB, { Collection } from "utils/NeDB";
-import RateLimit from "utils/RateLimit";
-import ScryfallCache from "utils/ScryfallCache";
-import TimerMessage from "utils/TimerMessage";
+import CacheTimeout from "components/CacheTimeout";
+import NeDB, { Collection } from "components/NeDB";
+import RateLimit from "components/RateLimit";
+import ScryfallCache from "instances/ScryfallCache";
+import TimerMessage from "components/TimerMessage";
 
 const Selector = {
   USERNAME: "input#id_username",

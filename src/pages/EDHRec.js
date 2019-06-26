@@ -2,11 +2,11 @@ import { includes } from "lodash";
 import EDHRecThemeList from "models/EDHRecThemeList";
 import EDHRecRecommendation from "models/EDHRecRecommendation";
 import BasePage from "pages/BasePage";
-import CacheTimeout from "utils/CacheTimeout";
-import RateLimit from "utils/RateLimit";
-import NeDB, { Collection } from "utils/NeDB";
-import ScryfallCache from "utils/ScryfallCache";
-import TimerMessage from "utils/TimerMessage";
+import CacheTimeout from "components/CacheTimeout";
+import RateLimit from "components/RateLimit";
+import NeDB, { Collection } from "components/NeDB";
+import ScryfallCache from "instances/ScryfallCache";
+import TimerMessage from "components/TimerMessage";
 
 const Selector = {
   CARD_ELEMENT: "div#cardlists div.nw",

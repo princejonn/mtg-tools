@@ -1,4 +1,4 @@
-import PuppeteerManager from "../utils/PuppeteerManager";
+import PuppeteerManager from "../components/PuppeteerManager";
 
 export default class BasePage {
   constructor() {

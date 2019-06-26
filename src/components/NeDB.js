@@ -1,4 +1,4 @@
-import adapter, { Collection } from "utils/NeDBAdapter";
+import adapter, { Collection } from "instances/NeDBAdapter";
 
 export { Collection };
 
@@ -11,29 +11,32 @@ export default class NeDB {
   }
 
   /**
-   * @param {object} [sort]
+   * @param {object} [options]
+   * @param {object} [options.sort]
+   * @param {number} [options.limit]
    * @returns {Promise<Array<object>>}
    */
-  async get(sort) {
-    if (sort) {
-      return adapter.findSort(this._collection, {}, sort);
-    }
-    return adapter.find(this._collection, {});
+  async get(options = {}) {
+    return adapter.find(this._collection, {
+      query: {},
+      sort: options.sort,
+      limit: options.limit,
+    });
   }
 
   /**
    * @param {object} query
-   * @param {object} [sort]
+   * @param {object} [options]
+   * @param {object} [options.sort]
+   * @param {number} [options.limit]
    * @returns {Promise<Array<object>|object>}
    */
-  async find(query, sort) {
-    let result = [];
-
-    if (sort) {
-      result = await adapter.findSort(this._collection, query, sort);
-    } else {
-      result = await adapter.find(this._collection, query);
-    }
+  async find(query, options = {}) {
+    const result = await adapter.find(this._collection, {
+      query,
+      sort: options.sort,
+      limit: options.limit,
+    });
 
     if (!result.length) {
       return null;

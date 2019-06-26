@@ -1,5 +1,5 @@
 import Datastore from "nedb";
-import DateFns from "utils/DateFns";
+import DateFns from "components/DateFns";
 
 export const Collection = {
   ALIASES: "aliases",
@@ -18,33 +18,24 @@ class NeDBAdapter {
     for (const key in Collection) {
       if (!Collection.hasOwnProperty(key)) continue;
       const collection = Collection[key];
-      this._db[collection] = new Datastore({ filename: `db/${collection}.db`, timestampData: true, autoload: true });
+      this._db[collection] = new Datastore({
+        filename: `db/${collection}.db`,
+        timestampData: true,
+        autoload: true,
+      });
     }
   }
 
   /**
    * @param {string} collection
-   * @param {object} query
+   * @param {object} [query]
+   * @param {object} [sort]
+   * @param {number} [limit]
    * @returns {Promise}
    */
-  async find(collection, query) {
+  async find(collection, { query, sort, limit }) {
     return new Promise((resolve, reject) => {
-      this._db[collection].find(query, (err, docs) => {
-        if (err) reject(err);
-        resolve(docs);
-      });
-    });
-  }
-
-  /**
-   * @param {string} collection
-   * @param {object} query
-   * @param sort
-   * @returns {Promise}
-   */
-  async findSort(collection, query, sort) {
-    return new Promise((resolve, reject) => {
-      this._db[collection].find(query).sort(sort).exec((err, docs) => {
+      this._db[collection].find(query).sort(sort).limit(limit).exec((err, docs) => {
         if (err) reject(err);
         resolve(docs);
       });
