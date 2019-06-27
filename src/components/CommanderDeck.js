@@ -1,25 +1,15 @@
-import { cloneDeep, filter, find, includes } from "lodash";
+import { filter, find } from "lodash";
 import arraySort, { SortBy } from "utils/ArraySort";
 import ScryfallCache from "instances/ScryfallCache";
-
-const Types = {
-  artifact: 0,
-  creature: 0,
-  enchantment: 0,
-  instant: 0,
-  sorcery: 0,
-  basicLands: 0,
-  lands: 0,
-};
 
 export default class CommanderDeck {
   constructor() {
     this.cards = [];
-    this.types = cloneDeep(Types);
+    this.types = {};
     this.tappedOut = {
       decks: [],
       added: 0,
-      types: cloneDeep(Types),
+      types: {},
     };
     this.averageTypes = {};
     this.typeSuggestion = {};
@@ -40,7 +30,7 @@ export default class CommanderDeck {
         throw new Error("trying to add more of the same card in a commander deck");
       }
 
-      this._sumCardType(this.types, card, data);
+      this._sumCardTypes(this.types, card, data.tappedOut);
 
       card.isCommander = true;
       card.setEDHRec(data.edhRec);
@@ -69,15 +59,17 @@ export default class CommanderDeck {
         amount: data.tappedOut.amount,
       });
 
-      this._sumCardType(this.tappedOut.types, card, data);
+      this._sumCardTypes(this.tappedOut.types, card, data.tappedOut);
 
       if (existingCard) {
         existingCard.addTappedOut(data.tappedOut);
+
         similarity += 1;
         continue;
       }
 
       card.addTappedOut(data.tappedOut);
+
       this.cards.push(card);
     }
 
@@ -150,9 +142,10 @@ export default class CommanderDeck {
       card.calculatePercent(this.tappedOut.added);
     }
 
-    const types = cloneDeep(Types);
-    for (const key in types) {
-      if (!types.hasOwnProperty(key)) continue;
+    const types = {};
+
+    for (const key in this.tappedOut.types) {
+      if (!this.tappedOut.types.hasOwnProperty(key)) continue;
       types[key] = Math.floor(this.tappedOut.types[key] / this.tappedOut.added);
     }
 
@@ -161,10 +154,13 @@ export default class CommanderDeck {
 
     for (const key in types) {
       if (!types.hasOwnProperty(key)) continue;
+      if (!this.types[key]) {
+        this.types[key] = 0;
+      }
       const diff = types[key] - this.types[key];
       if (diff > 0) {
         add[key] = diff;
-      } else {
+      } else if (diff < 0) {
         remove[key] = -diff;
       }
     }
@@ -181,33 +177,15 @@ export default class CommanderDeck {
   /**
    * @param {object} path
    * @param {Card} card
-   * @param {object} data
+   * @param {object} tappedOut
    * @private
    */
-  _sumCardType(path, card, data) {
-    const typeLine = card.typeLine.toLowerCase();
-    const { amount } = data.tappedOut;
-
-    if (includes(typeLine, "artifact")) {
-      path.artifact += amount;
+  _sumCardTypes(path, card, tappedOut) {
+    const { type } = card;
+    const { amount } = tappedOut;
+    if (!path[type]) {
+      path[type] = 0;
     }
-    if (includes(typeLine, "creature")) {
-      path.creature += amount;
-    }
-    if (includes(typeLine, "enchantment")) {
-      path.enchantment += amount;
-    }
-    if (includes(typeLine, "instant")) {
-      path.instant += amount;
-    }
-    if (includes(typeLine, "sorcery")) {
-      path.sorcery += amount;
-    }
-    if (includes(typeLine, "land") && includes(typeLine, "basic")) {
-      path.basicLands += amount;
-    }
-    if (includes(typeLine, "land") && !includes(typeLine, "basic")) {
-      path.lands += amount;
-    }
+    path[type] += amount;
   }
 }

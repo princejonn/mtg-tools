@@ -87,10 +87,9 @@ class ScryfallCache {
     const timerMessage = new TimerMessage("loading scryfall cache");
 
     this._cache = require(this._file);
+    this._loaded = true;
 
     timerMessage.done();
-
-    this._loaded = true;
   }
 
   /**
@@ -127,9 +126,9 @@ class ScryfallCache {
       await this._scryfall.insert({ name, downloaded, file });
     }
 
-    timerMessage.done();
-
     this._file = file;
+
+    timerMessage.done();
   }
 
   /**
