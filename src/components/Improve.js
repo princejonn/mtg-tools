@@ -20,13 +20,14 @@ export default class Improve {
   async main() {
     await ScryfallCacheService.load();
 
-    const tm1 = new TimerMessage("improving deck");
     const edhRec = new EDHRecService();
     const tappedOut = new TappedOutService();
     const decks = [];
 
     const commander = await tappedOut.getCommander(this.url, this.account);
     const themeList = await edhRec.getThemeList(commander);
+
+    const tm1 = new TimerMessage("improving deck");
     const theme = await ReadLineService.selectTheme(themeList);
     const recommendation = await edhRec.getRecommendation(theme);
     const linkList = await tappedOut.getSimilarLinks(commander);

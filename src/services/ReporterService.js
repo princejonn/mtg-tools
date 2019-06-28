@@ -21,6 +21,9 @@ export default class ReporterService {
     }
 
     const content = [];
+    content.push(HTMLService.getCardsToAdd(commanderDeck));
+    content.push(HTMLService.getCardsToRemove(commanderDeck));
+
     content.push(HTMLService.getRecommendation(commanderDeck, 16));
     content.push(HTMLService.getLeastPopular(commanderDeck, 12));
 

@@ -1,4 +1,7 @@
-import { cloneDeep, filter, find } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
+import filter from "lodash/filter";
+import find from "lodash/find";
+import includes from "lodash/includes";
 import arraySort, { SortBy } from "utils/ArraySort";
 import InventoryService from "services/InventoryService";
 import ScryfallCacheService from "services/ScryfallCacheService";
@@ -177,7 +180,8 @@ export default class CommanderDeck {
    * @private
    */
   async _addCard(card) {
-    if (card.type === "Basic Land") return;
+    if (includes(card.type, "basic")) return;
+    if (includes(card.type, "snow")) return;
     const amount = await InventoryService.getAmount(card.id);
     card.setInventory({ amount });
     this.cards.push(card);

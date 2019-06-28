@@ -40,6 +40,59 @@ export default class HTMLService {
   }
 
   /**
+   * @param {CommanderDeck} commanderDeck
+   * @returns {string}
+   */
+  static getTypedSuggestion(commanderDeck) {
+    const suggestion = commanderDeck.getTypedSuggestion();
+    return this._buildSuggestionHTML(suggestion, "Recommendation based on types");
+  }
+
+  /**
+   * @param {CommanderDeck} commanderDeck
+   * @returns {string}
+   */
+  static getCardsToAdd(commanderDeck) {
+    const suggestion = commanderDeck.getCardsToAdd();
+    return this._buildSuggestionHTML(suggestion, "Add the following cards");
+  }
+
+  /**
+   * @param {CommanderDeck} commanderDeck
+   * @returns {string}
+   */
+  static getCardsToRemove(commanderDeck) {
+    const suggestion = commanderDeck.getCardsToRemove();
+    return this._buildSuggestionHTML(suggestion, "Remove the following cards");
+  }
+
+  /**
+   * @param {object} suggestion
+   * @param {string} header
+   * @returns {string}
+   * @private
+   */
+  static _buildSuggestionHTML(suggestion, header) {
+    const content = [];
+
+    content.push(`<header class="card-list-header font-large">${header}</header>`);
+
+    for (const key in suggestion) {
+      if (!suggestion.hasOwnProperty(key)) continue;
+      const cards = suggestion[key];
+      if (!cards.length) continue;
+      content.push(`<header class="card-list-header font-medium">${key.replace(/\_/g, " ").toUpperCase()}</header>`);
+      content.push("<section class=\"card-list\">");
+      for (const card of cards) {
+        content.push(HTMLService._buildCardHTML(card));
+      }
+      content.push("</section>");
+    }
+
+    return content.join("");
+  }
+
+  /**
    * @param {Array<Card>} cards
    * @returns Array<string>
    * @private
@@ -47,14 +100,41 @@ export default class HTMLService {
   static _buildCardsHTML(cards) {
     const array = [];
     for (const card of cards) {
-      array.push(`<div class="card-container" data-id="${card.id}"> 
-<div class="card-image"><a href="${card.scryfallUri}" target="_blank"><img class="card-image-img" src="${card.image}" alt="${card.name}"/></a></div>
-<div class="card-data"><div class="card-data-row">
-<div class="card-data-col font-large">${card.percent}%</div></div><div class="card-data-row">
-<div class="card-data-col font-small">TappedOut <span>${card.tappedOut.percent}%</span></div>
-<div class="card-data-col font-small">EDHRec <span>${card.edhRec.percent}%</span></div></div></div></div>`);
+      array.push(HTMLService._buildCardHTML(card));
     }
     return array;
+  }
+
+  /**
+   * @param {Card} card
+   * @returns {string}
+   * @private
+   */
+  static _buildCardHTML(card) {
+    const borderColor = card.inventory.amount > 0
+      ? "green"
+      : "red";
+
+    return (`
+<div class="card-container" data-id="${card.id}">
+  <div class="card-image">
+    <a href="${card.scryfallUri}" target="_blank">
+      <img class="card-image-img" src="${card.image}" alt="${card.name}"/>
+    </a>
+  </div>
+  <div class="card-border card-border-${borderColor}"></div>
+  <div class="card-data">
+    <div class="card-data-col">
+      <div class="card-data-row font-large">${card.percent}%</div>
+    </div>
+    <div class="card-data-col">
+      <div class="card-data-row font-small">EDHRec <span>${card.edhRec.percent}%</span></div>
+      <div class="card-data-row font-small">TappedOut <span>${card.tappedOut.percent}%</span></div>
+      <div class="card-data-row font-small">Inventory <span>${card.inventory.amount}</span></div>
+    </div>
+  </div>
+</div>
+`);
   }
 
   /**
@@ -75,11 +155,6 @@ export default class HTMLService {
   padding-bottom: 5px;
   text-align: center;
 }
-.card-list-header-sub {
-  padding-top: 20px;
-  padding-bottom: 5px;
-  text-align: center;
-}
 .card-list {
   display: flex;
   justify-content: space-around;
@@ -90,6 +165,15 @@ export default class HTMLService {
 .card-container {
   padding: 10px;
 }
+.card-border {
+  height: 5px;
+}
+.card-border-green {
+  background-color: limegreen;
+}
+.card-border-red {
+  background-color: red;
+}
 .card-image-img {
   width: 250px;
 }
@@ -98,32 +182,31 @@ export default class HTMLService {
   justify-content: space-between;
   flex-direction: row;
 }
-.card-data-row {
+.card-data-col {
   display: flex;
   justify-content: space-between;
   flex-direction: column;
   text-align: right;
 }
-.card-data-col {
+.card-data-row {
   color: darkgray;
-  padding-top: 3px;
-  padding-bottom: 3px;
-  padding-left: 9px;
-  padding-right: 9px;
+  padding-left: 5px;
+  padding-right: 5px;
   justify-content: space-between;
 }
 .card-data-col span {
   font-weight: bold;
 }
 .font-large {
-  font-size: 22pt;
+  font-size: 23pt;
   font-weight: bold;
 }
 .font-medium {
-  font-size: 16pt;
+  font-size: 15pt;
+  font-weight: bold;
 }
 .font-small {
-  font-size: 8pt;
+  font-size: 7pt;
 }
 </style>`);
   }
