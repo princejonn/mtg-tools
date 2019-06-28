@@ -18,7 +18,8 @@
     "publish:patch": "npm version patch && npm publish",
     "publish:minor": "npm version minor && npm publish",
     "publish:major": "npm version major && npm publish",
-    "improve": "node lib/cli/improve"
+    "improve": "node lib/cli/improve",
+    "inventory": "node lib/cli/inventory"
   },
   "dependencies": {
     "@babel/cli": "^7.4.4",

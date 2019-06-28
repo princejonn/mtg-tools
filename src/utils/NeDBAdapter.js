@@ -22,9 +22,8 @@ class NeDBAdapter {
     for (const key in Collection) {
       if (!Collection.hasOwnProperty(key)) continue;
       const collection = Collection[key];
-      const file = path.join(process.env.PWD, "db", `${collection}.db`);
-      this._files[collection] = file;
-      this._setDatastore(collection, file);
+      this._files[collection] = `db/${collection}.db`;
+      this._setDatastore(collection, `db/${collection}.db`);
     }
   }
 
@@ -101,9 +100,8 @@ class NeDBAdapter {
    * @returns {Promise<void>}
    */
   async resetFile(collection) {
-    const file = this._files[collection];
+    const file = path.join(process.env.PWD, this._files[collection]);
     fs.unlinkSync(file);
-    this._setDatastore(collection, file);
   }
 
   /**
