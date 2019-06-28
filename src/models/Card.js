@@ -36,6 +36,8 @@ export default class Card {
       percent: 0,
     };
 
+    this.inventory = { amount: 0 };
+
     this.type = null;
 
     this._setType();
@@ -51,14 +53,28 @@ export default class Card {
     this.edhRec.synergy = data.synergy || this.edhRec.synergy;
   }
 
+  /**
+   * @param {{amount: number}} data
+   */
   addTappedOut(data) {
     if (!data) return;
     this.tappedOut.amount += data.amount;
   }
 
+  /**
+   * @param {{amount: number}} data
+   */
   setTappedOut(data) {
     if (!data) return;
     this.tappedOut.amount = data.amount;
+  }
+
+  /**
+   * @param {{amount: number}} data
+   */
+  setInventory(data) {
+    if (!data) return;
+    this.inventory.amount = data.amount;
   }
 
   /**

@@ -1,5 +1,6 @@
 import { cloneDeep, filter, find } from "lodash";
 import arraySort, { SortBy } from "utils/ArraySort";
+import InventoryService from "services/InventoryService";
 import ScryfallCacheService from "services/ScryfallCacheService";
 
 export default class CommanderDeck {
@@ -35,7 +36,7 @@ export default class CommanderDeck {
       card.isCommander = true;
       card.setEDHRec(data.edhRec);
       card.addTappedOut(data.tappedOut);
-      this._addCard(card);
+      await this._addCard(card);
     }
   }
 
@@ -67,7 +68,7 @@ export default class CommanderDeck {
       }
 
       card.addTappedOut(data.tappedOut);
-      this._addCard(card);
+      await this._addCard(card);
     }
 
     similarity = Math.floor((similarity / (this.cards.length + cards.length)) * 1000) / 10;
@@ -97,7 +98,7 @@ export default class CommanderDeck {
       }
 
       card.setEDHRec(data.edhRec);
-      this._addCard(card);
+      await this._addCard(card);
     }
   }
 
@@ -175,8 +176,10 @@ export default class CommanderDeck {
    * @param {Card} card
    * @private
    */
-  _addCard(card) {
+  async _addCard(card) {
     if (card.type === "Basic Land") return;
+    const amount = await InventoryService.getAmount(card.id);
+    card.setInventory({ amount });
     this.cards.push(card);
   }
 

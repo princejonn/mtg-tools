@@ -18,9 +18,9 @@ export default class Improve {
   }
 
   async main() {
-    const tm1 = new TimerMessage("improving deck");
     await ScryfallCacheService.load();
 
+    const tm1 = new TimerMessage("improving deck");
     const edhRec = new EDHRecService();
     const tappedOut = new TappedOutService();
     const decks = [];
