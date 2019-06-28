@@ -8,14 +8,14 @@ import humps from "lodash-humps";
 import * as queryString from "query-string";
 import request from "request-promise-native";
 import Card from "models/Card";
-import CacheTimeout from "components/CacheTimeout";
-import DateFns from "components/DateFns";
+import CacheTimeout from "utils/CacheTimeout";
+import DateFns from "utils/DateFns";
 import latinise from "utils/Latinise";
-import NeDB, { Collection } from "components/NeDB";
-import RateLimit from "components/RateLimit";
-import TimerMessage from "components/TimerMessage";
+import NeDB, { Collection } from "utils/NeDB";
+import RateLimit from "utils/RateLimit";
+import TimerMessage from "utils/TimerMessage";
 
-class ScryfallCache {
+class ScryfallCacheService {
   constructor() {
     this._aliases = new NeDB(Collection.ALIASES);
     this._scryfall = new NeDB(Collection.SCRYFALL);
@@ -65,7 +65,7 @@ class ScryfallCache {
       return complexResult;
     }
 
-    const apiResult = await ScryfallCache._searchAPI(name);
+    const apiResult = await ScryfallCacheService._searchAPI(name);
 
     if (apiResult && apiResult.id) {
       await this._aliases.insert({ name, id: apiResult.id });
@@ -114,11 +114,10 @@ class ScryfallCache {
     const fileLink = "https://archive.scryfall.com/json/";
     const fileName = "scryfall-default-cards.json";
 
-    await download(`${fileLink}${fileName}`, "db");
+    await download(`${fileLink}${fileName}`, "cache");
 
     const downloaded = DateFns.format();
-    const pwd = process.env.PWD;
-    const file = path.join(pwd, "db", fileName);
+    const file = path.join(process.env.PWD, "cache", fileName);
 
     if (info) {
       await this._scryfall.update({ name }, { downloaded, file });
@@ -146,7 +145,7 @@ class ScryfallCache {
         return card;
       }
 
-      if (ScryfallCache._parseQueryString(name) === ScryfallCache._parseQueryString(card.name)) {
+      if (ScryfallCacheService._parseQueryString(name) === ScryfallCacheService._parseQueryString(card.name)) {
         return card;
       }
 
@@ -212,6 +211,6 @@ class ScryfallCache {
   }
 }
 
-const cache = new ScryfallCache();
+const cache = new ScryfallCacheService();
 
 export default cache;

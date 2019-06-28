@@ -1,4 +1,4 @@
-import adapter, { Collection } from "instances/NeDBAdapter";
+import adapter, { Collection } from "utils/NeDBAdapter";
 
 export { Collection };
 
@@ -72,5 +72,12 @@ export default class NeDB {
    */
   async remove(query) {
     return adapter.remove(this._collection, query);
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async resetFile() {
+    return adapter.resetFile(this._collection);
   }
 }

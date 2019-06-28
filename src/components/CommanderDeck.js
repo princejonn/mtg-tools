@@ -1,6 +1,6 @@
-import { filter, find } from "lodash";
+import { cloneDeep, filter, find } from "lodash";
 import arraySort, { SortBy } from "utils/ArraySort";
-import ScryfallCache from "instances/ScryfallCache";
+import ScryfallCacheService from "services/ScryfallCacheService";
 
 export default class CommanderDeck {
   constructor() {
@@ -23,7 +23,7 @@ export default class CommanderDeck {
     const { cards } = deck;
 
     for (const data of cards) {
-      const card = await ScryfallCache.getCard(data.id);
+      const card = await ScryfallCacheService.getCard(data.id);
       const existingCard = find(this.cards, { id: card.id });
 
       if (existingCard) {
@@ -35,8 +35,7 @@ export default class CommanderDeck {
       card.isCommander = true;
       card.setEDHRec(data.edhRec);
       card.addTappedOut(data.tappedOut);
-
-      this.cards.push(card);
+      this._addCard(card);
     }
   }
 
@@ -50,7 +49,7 @@ export default class CommanderDeck {
     let similarity = 0;
 
     for (const data of cards) {
-      const card = await ScryfallCache.getCard(data.id);
+      const card = await ScryfallCacheService.getCard(data.id);
       const existingCard = find(this.cards, { id: card.id });
 
       array.push({
@@ -63,14 +62,12 @@ export default class CommanderDeck {
 
       if (existingCard) {
         existingCard.addTappedOut(data.tappedOut);
-
         similarity += 1;
         continue;
       }
 
       card.addTappedOut(data.tappedOut);
-
-      this.cards.push(card);
+      this._addCard(card);
     }
 
     similarity = Math.floor((similarity / (this.cards.length + cards.length)) * 1000) / 10;
@@ -91,7 +88,7 @@ export default class CommanderDeck {
     const { cards } = recommendation;
 
     for (const data of cards) {
-      const card = await ScryfallCache.getCard(data.id);
+      const card = await ScryfallCacheService.getCard(data.id);
       const existingCard = find(this.cards, { id: card.id });
 
       if (existingCard) {
@@ -100,7 +97,7 @@ export default class CommanderDeck {
       }
 
       card.setEDHRec(data.edhRec);
-      this.cards.push(card);
+      this._addCard(card);
     }
   }
 
@@ -126,10 +123,101 @@ export default class CommanderDeck {
     return arraySort(cards, "percent", SortBy.ASCENDING);
   }
 
-  getTypeSuggestion() {
+  /**
+   * @returns {object}
+   */
+  getTypedSuggestion() {
     this._calculate();
 
-    return this.typeSuggestion;
+    const sorted = arraySort(this.cards, "percent", SortBy.DESCENDING);
+    const averageTypes = cloneDeep(this.averageTypes);
+    const typesCards = {};
+
+    for (const typeKey in averageTypes) {
+      if (!averageTypes.hasOwnProperty(typeKey)) continue;
+
+      if (!typesCards[typeKey]) {
+        typesCards[typeKey] = [];
+      }
+
+      for (const index in sorted) {
+        if (!sorted.hasOwnProperty(index)) continue;
+        if (averageTypes[typeKey] === 0) break;
+
+        const card = sorted[index];
+        if (card.type !== typeKey) continue;
+
+        typesCards[typeKey].push(card);
+
+        sorted.splice(index, 1);
+        averageTypes[typeKey] -= 1;
+      }
+    }
+
+    return typesCards;
+  }
+
+  /**
+   * @returns {object}
+   */
+  getCardsToAdd() {
+    return this._getCardsTo("add", false, SortBy.DESCENDING);
+  }
+
+  /**
+   * @returns {object}
+   */
+  getCardsToRemove() {
+    return this._getCardsTo("remove", true, SortBy.ASCENDING);
+  }
+
+  /**
+   * @param {Card} card
+   * @private
+   */
+  _addCard(card) {
+    if (card.type === "Basic Land") return;
+    this.cards.push(card);
+  }
+
+  /**
+   * @param {string} addRemove
+   * @param {boolean} inDeck
+   * @param {string} sortBy
+   * @private
+   */
+  _getCardsTo(addRemove, inDeck, sortBy) {
+    this._calculate();
+
+    const typeSuggestion = cloneDeep(this.typeSuggestion);
+    const suggestion = typeSuggestion[addRemove];
+    const filtered = filter(this.cards, { isCommander: inDeck });
+    const sorted = arraySort(filtered, "percent", sortBy);
+    const typedCards = {};
+
+    for (const type in suggestion) {
+      if (!suggestion.hasOwnProperty(type)) continue;
+      if (type === "basicLand") continue;
+
+      if (!typedCards[type]) {
+        typedCards[type] = [];
+      }
+
+      for (const index in sorted) {
+        if (!sorted.hasOwnProperty(index)) continue;
+        if (suggestion[type] === 0) break;
+
+        const card = sorted[index];
+        if (card.type !== type) continue;
+
+        typedCards[type].push(card);
+
+        sorted.splice(index, 1);
+        suggestion[type] -= 1;
+      }
+    }
+
+    return typedCards;
   }
 
   /**
@@ -168,10 +256,6 @@ export default class CommanderDeck {
     this.typeSuggestion = { add, remove };
     this.averageTypes = types;
     this.isCalculated = true;
-
-    console.log(this.types);
-    console.log(this.averageTypes);
-    console.log(this.typeSuggestion);
   }
 
   /**

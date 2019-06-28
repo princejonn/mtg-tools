@@ -1,10 +1,13 @@
+import fs from "fs";
+import path from "path";
 import Datastore from "nedb";
-import DateFns from "components/DateFns";
+import DateFns from "utils/DateFns";
 
 export const Collection = {
   ALIASES: "aliases",
   COMMANDERS: "commanders",
   DECKS: "decks",
+  INVENTORY: "inventory",
   LINKS: "links",
   RECOMMENDATIONS: "recommendations",
   SCRYFALL: "scryfall",
@@ -14,15 +17,14 @@ export const Collection = {
 class NeDBAdapter {
   constructor() {
     this._db = {};
+    this._files = {};
 
     for (const key in Collection) {
       if (!Collection.hasOwnProperty(key)) continue;
       const collection = Collection[key];
-      this._db[collection] = new Datastore({
-        filename: `db/${collection}.db`,
-        timestampData: true,
-        autoload: true,
-      });
+      const file = path.join(process.env.PWD, "db", `${collection}.db`);
+      this._files[collection] = file;
+      this._setDatastore(collection, file);
     }
   }
 
@@ -92,6 +94,28 @@ class NeDBAdapter {
         if (err) reject(err);
         resolve(result);
       });
+    });
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async resetFile(collection) {
+    const file = this._files[collection];
+    fs.unlinkSync(file);
+    this._setDatastore(collection, file);
+  }
+
+  /**
+   * @param {string} collection
+   * @param {string} file
+   * @private
+   */
+  _setDatastore(collection, file) {
+    this._db[collection] = new Datastore({
+      filename: file,
+      timestampData: true,
+      autoload: true,
     });
   }
 }

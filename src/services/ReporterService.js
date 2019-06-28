@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import HTMLService from "services/HTMLService";
-import DateFns from "components/DateFns";
+import DateFns from "utils/DateFns";
 
 export default class ReporterService {
   /**

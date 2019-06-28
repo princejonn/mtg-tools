@@ -1,12 +1,12 @@
 import { includes } from "lodash";
 import EDHRecThemeList from "models/EDHRecThemeList";
 import EDHRecRecommendation from "models/EDHRecRecommendation";
-import BasePage from "pages/BasePage";
-import CacheTimeout from "components/CacheTimeout";
-import RateLimit from "components/RateLimit";
-import NeDB, { Collection } from "components/NeDB";
-import ScryfallCache from "instances/ScryfallCache";
-import TimerMessage from "components/TimerMessage";
+import ScryfallCacheService from "services/ScryfallCacheService";
+import BasePage from "utils/BasePage";
+import CacheTimeout from "utils/CacheTimeout";
+import RateLimit from "utils/RateLimit";
+import NeDB, { Collection } from "utils/NeDB";
+import TimerMessage from "utils/TimerMessage";
 
 const Selector = {
   CARD_ELEMENT: "div#cardlists div.nw",
@@ -14,7 +14,7 @@ const Selector = {
   CARD_DESC: "div.nwdesc",
 };
 
-export default class EDHRec extends BasePage {
+export default class EDHRecService extends BasePage {
   constructor() {
     super();
     this._themes = new NeDB(Collection.THEMES);
@@ -143,7 +143,7 @@ export default class EDHRec extends BasePage {
       const nameElement = await element.$(Selector.CARD_NAME);
       const name = await this._manager.getElementText(nameElement);
 
-      const card = await ScryfallCache.find(name);
+      const card = await ScryfallCacheService.find(name);
       if (!card.id) continue;
 
       const descElement = await element.$(Selector.CARD_DESC);

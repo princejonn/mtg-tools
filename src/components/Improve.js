@@ -1,10 +1,11 @@
 import { includes } from "lodash";
 import CommanderDeck from "components/CommanderDeck";
 import TappedOutAccount from "models/TappedOutAccount";
-import EDHRec from "pages/EDHRec";
-import TappedOut from "pages/TappedOut";
+import EDHRecService from "services/EDHRecService";
 import ReadLineService from "services/ReadLineService";
 import ReporterService from "services/ReporterService";
+import TappedOutService from "services/TappedOutService";
+import TimerMessage from "utils/TimerMessage";
 
 export default class Improve {
   constructor(url, username, password) {
@@ -16,8 +17,9 @@ export default class Improve {
   }
 
   async main() {
-    const edhRec = new EDHRec();
-    const tappedOut = new TappedOut();
+    const tm1 = new TimerMessage("improving deck");
+    const edhRec = new EDHRecService();
+    const tappedOut = new TappedOutService();
     const decks = [];
 
     const commander = await tappedOut.getCommander(this.url, this.account);
@@ -34,7 +36,7 @@ export default class Improve {
 
     const cmdDeck = await tappedOut.getCommanderDeck(commander, this.account);
 
-    console.log("finalizing deck");
+    const tm2 = new TimerMessage("finalizing deck");
     const commanderDeck = new CommanderDeck();
     await commanderDeck.addCommanderDeck(cmdDeck);
     await commanderDeck.addEDHRecommendation(recommendation);
@@ -43,6 +45,8 @@ export default class Improve {
       await commanderDeck.addTappedOutDeck(deck);
     }
 
+    tm2.done();
+    tm1.done();
     await ReporterService.buildImproveReport(commander, commanderDeck);
   }
 }

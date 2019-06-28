@@ -6,39 +6,39 @@ export const SortBy = {
 };
 
 /**
- * @param {Array} array
- * @param {string} path
- * @param {string} ascDesc
+ * @param {Array} arrayOfObjects
+ * @param {string} sortByPath
+ * @param {string} sortDirection
  * @returns {array}
  */
-export default (array, path, ascDesc) => {
-  if (!_.isArray(array)) {
+export default (arrayOfObjects, sortByPath, sortDirection) => {
+  if (!_.isArray(arrayOfObjects)) {
     throw new Error("array is undefined");
   }
-  if (!_.isString(path)) {
+  if (!_.isString(sortByPath)) {
     throw new Error("path is undefined");
   }
-  if (ascDesc !== SortBy.ASCENDING && ascDesc !== SortBy.DESCENDING) {
+  if (sortDirection !== SortBy.ASCENDING && sortDirection !== SortBy.DESCENDING) {
     throw new Error("ascDesc is undefined");
   }
 
   const compare = (a, b) => {
-    if (_.get(a, path) < _.get(b, path)) {
-      if (ascDesc === SortBy.ASCENDING) {
+    if (_.get(a, sortByPath) < _.get(b, sortByPath)) {
+      if (sortDirection === SortBy.ASCENDING) {
         return -1;
-      } if (ascDesc === SortBy.DESCENDING) {
+      } if (sortDirection === SortBy.DESCENDING) {
         return 1;
       }
     }
-    if (_.get(a, path) > _.get(b, path)) {
-      if (ascDesc === SortBy.ASCENDING) {
+    if (_.get(a, sortByPath) > _.get(b, sortByPath)) {
+      if (sortDirection === SortBy.ASCENDING) {
         return 1;
-      } if (ascDesc === SortBy.DESCENDING) {
+      } if (sortDirection === SortBy.DESCENDING) {
         return -1;
       }
     }
     return 0;
   };
 
-  return array.sort(compare);
+  return arrayOfObjects.sort(compare);
 };

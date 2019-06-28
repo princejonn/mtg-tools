@@ -1,12 +1,12 @@
 import Commander from "models/Commander";
 import TappedOutDeck from "models/TappedOutDeck";
 import TappedOutLinkList from "models/TappedOutLinkList";
-import BasePage from "pages/BasePage";
-import CacheTimeout from "components/CacheTimeout";
-import NeDB, { Collection } from "components/NeDB";
-import RateLimit from "components/RateLimit";
-import ScryfallCache from "instances/ScryfallCache";
-import TimerMessage from "components/TimerMessage";
+import ScryfallCacheService from "services/ScryfallCacheService";
+import BasePage from "utils/BasePage";
+import CacheTimeout from "utils/CacheTimeout";
+import NeDB, { Collection } from "utils/NeDB";
+import RateLimit from "utils/RateLimit";
+import TimerMessage from "utils/TimerMessage";
 
 const Selector = {
   USERNAME: "input#id_username",
@@ -22,7 +22,7 @@ const Selector = {
   CARD_LINK: "span > a",
 };
 
-export default class TappedOut extends BasePage {
+export default class TappedOutService extends BasePage {
   constructor() {
     super();
     this._loggedIn = false;
@@ -162,12 +162,13 @@ export default class TappedOut extends BasePage {
 
     const timerMessage = new TimerMessage("finding similar links");
 
+    const maxPages = 5;
     const baseUrl = `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commander.queryString}&price_0=&price_1=&o=-rating&submit=Filter+results`;
-    const pages = [ 1, 2, 3 ];
     const links = [];
+    let page = 1;
 
-    for (const number of pages) {
-      const searchUrl = `${baseUrl}&p=${number}&page=${number}`;
+    while (page <= maxPages) {
+      const searchUrl = `${baseUrl}&p=${page}&page=${page}`;
       await RateLimit.tappedOut();
 
       try {
@@ -187,6 +188,8 @@ export default class TappedOut extends BasePage {
         console.log("unable to build similar links:", searchUrl);
         console.log(err);
       }
+
+      page += 1;
     }
 
     timerMessage.done();
@@ -236,7 +239,7 @@ export default class TappedOut extends BasePage {
             }
           }
 
-          const cachedCard = await ScryfallCache.find(name);
+          const cachedCard = await ScryfallCacheService.find(name);
           if (!cachedCard.id) continue;
 
           cards.push({ id: cachedCard.id, tappedOut: { amount } });

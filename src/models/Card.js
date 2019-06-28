@@ -1,4 +1,4 @@
-import { camelCase, includes } from "lodash";
+import { includes } from "lodash";
 
 export default class Card {
   constructor(data) {
@@ -77,6 +77,7 @@ export default class Card {
 
     type = type.replace(/hero/g, "");
     type = type.replace(/snow/g, "");
+    type = type.replace(/snow/g, "");
     type = type.replace(/token/g, "");
     type = type.replace(/tribal/g, "");
     type = type.replace(/world/g, "");
@@ -96,9 +97,9 @@ export default class Card {
     type = type.replace(/\s/g, "_");
 
     if (!type) {
-      type = "unknown";
+      type = "Special";
     }
 
-    this.type = camelCase(type);
+    this.type = type;
   }
 }
