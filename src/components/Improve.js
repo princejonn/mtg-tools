@@ -6,6 +6,7 @@ import ReadLineService from "services/ReadLineService";
 import ReporterService from "services/ReporterService";
 import TappedOutService from "services/TappedOutService";
 import TimerMessage from "utils/TimerMessage";
+import ScryfallCacheService from "../services/ScryfallCacheService";
 
 export default class Improve {
   constructor(url, username, password) {
@@ -18,6 +19,8 @@ export default class Improve {
 
   async main() {
     const tm1 = new TimerMessage("improving deck");
+    await ScryfallCacheService.load();
+
     const edhRec = new EDHRecService();
     const tappedOut = new TappedOutService();
     const decks = [];

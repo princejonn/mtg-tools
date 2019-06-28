@@ -1,11 +1,33 @@
+import path from "path";
 import NReadLines from "n-readlines";
+import CSVtoJSON from "csvtojson";
 import latinise from "utils/Latinise";
+import TimerMessage from "./TimerMessage";
 
-export default async file => {
+const returnCsv = async file => {
+  const cards = {};
+
+  const jsonArray = await CSVtoJSON().fromFile(file);
+
+  for (const card of jsonArray) {
+    const name = latinise(card.Name.trim());
+    const amount = parseInt(card.Quantity, 10);
+
+    if (!cards[name]) {
+      cards[name] = 0;
+    }
+
+    cards[name] += amount;
+  }
+
+  return cards;
+};
+
+const returnLines = async file => {
+  const cards = {};
+
   const nReadLines = new NReadLines(file);
   let buffer = nReadLines.next();
-
-  const cards = {};
 
   while (buffer) {
     const line = buffer.toString();
@@ -35,4 +57,23 @@ export default async file => {
   }
 
   return cards;
+};
+
+export default async file => {
+  const ext = path.extname(file);
+  const timerMessage = new TimerMessage("loading file");
+
+  if (ext === ".csv") {
+    const result = returnCsv(file);
+    timerMessage.done();
+    return result;
+  }
+
+  if (ext === ".txt") {
+    const result = returnLines(file);
+    timerMessage.done();
+    return result;
+  }
+
+  throw new Error("unsupported format. only [ .csv | .txt ] files allowed");
 };

@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import Datastore from "nedb";
 import DateFns from "utils/DateFns";
 
@@ -21,9 +19,16 @@ class NeDBAdapter {
 
     for (const key in Collection) {
       if (!Collection.hasOwnProperty(key)) continue;
+
       const collection = Collection[key];
-      this._files[collection] = `db/${collection}.db`;
-      this._setDatastore(collection, `db/${collection}.db`);
+      const file = `db/${collection}.db`;
+
+      this._files[collection] = file;
+      this._db[collection] = new Datastore({
+        filename: file,
+        timestampData: true,
+        autoload: true,
+      });
     }
   }
 
@@ -93,27 +98,6 @@ class NeDBAdapter {
         if (err) reject(err);
         resolve(result);
       });
-    });
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async resetFile(collection) {
-    const file = path.join(process.env.PWD, this._files[collection]);
-    fs.unlinkSync(file);
-  }
-
-  /**
-   * @param {string} collection
-   * @param {string} file
-   * @private
-   */
-  _setDatastore(collection, file) {
-    this._db[collection] = new Datastore({
-      filename: file,
-      timestampData: true,
-      autoload: true,
     });
   }
 }

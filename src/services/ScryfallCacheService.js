@@ -30,7 +30,7 @@ class ScryfallCacheService {
    * @returns {Promise<Card>}
    */
   async getCard(id) {
-    await this._load();
+    await this.load();
     const data = find(this._cache, { id });
     return new Card(humps(data));
   }
@@ -40,7 +40,7 @@ class ScryfallCacheService {
    * @returns {Promise<object>}
    */
   async find(name) {
-    await this._load();
+    await this.load();
 
     const cacheResult = find(this._cache, { name });
 
@@ -77,7 +77,7 @@ class ScryfallCacheService {
    * @returns {Promise<void>}
    * @private
    */
-  async _load() {
+  async load() {
     if (this._loaded) return;
 
     if (!this._file) {

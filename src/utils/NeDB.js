@@ -73,11 +73,4 @@ export default class NeDB {
   async remove(query) {
     return adapter.remove(this._collection, query);
   }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async resetFile() {
-    return adapter.resetFile(this._collection);
-  }
 }
