@@ -1,6 +1,7 @@
 cache
 db
 node_modules
+reports
 src
 .idea
 .vscode
@@ -10,3 +11,4 @@ src
 .huskyrc
 .npmignore
 .npmrc
+.DS_Store
