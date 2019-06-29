@@ -24,7 +24,7 @@ export default class HTMLService {
     const cards = commanderDeck.getMostRecommendedCards();
     const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
 
-    return (`<header class="card-list-header font-large">Recommendation from EDHRec</header>
+    return (`<header class="card-list-header font-large">Consider adding these cards</header>
     <section class="card-list">${array.join("")}</section>`);
   }
 
