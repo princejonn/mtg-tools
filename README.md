@@ -1,19 +1,16 @@
-# MTG Tools
+# mtg-tools
 
-## Setup
+## Installation
 
-copy `example.env` into `.env` and add your login details.
+```
+npm install -g mtg-tools
+```
 
-run command `npm install`
+## Using
 
-ron command `npm run build`
-
-**Why Login?**
-
-The tool cannot find decks or search if you aren't logged in.
-
-If you are worried over your details getting stolen - **Good**! You should always be worried over this. Check the `/src` code. You can search for `TAPPEDOUT_`. You can confirm that they are only ever used in the `TappedOut.login()` method.
-
-## Improve current deck
-
-`npm run improve {tappedOutLink}`
+```
+mtg-tools -h        //  help
+mtg-tools i <url>   //  improving a commander TappedOut deck
+mtg-tools r <name>  //  recommending a deck list for commander (requires login)
+mtg-tools e <file>  //  saving your inventory to cache for better reports
+```
