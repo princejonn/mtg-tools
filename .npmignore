@@ -1,5 +1,3 @@
-__mocks__
-__tests__
 cache
 db
 node_modules
@@ -7,15 +5,8 @@ src
 .idea
 .vscode
 .babelrc
+.eslintignore
+.eslintrc
+.huskyrc
 .npmignore
 .npmrc
-.esdoc.json
-.eslintignore
-.grenrc.json
-.travis.yml
-jest.config.js
-webpack.common.js
-webpack.dev.js
-webpack.npm.js
-webpack.npm.debug.js
-webpack.prod.js

@@ -89,15 +89,15 @@ export default class Card {
    * @private
    */
   _setType() {
-    let type = this.typeLine.toLowerCase();
-
-    type = type.replace(/hero/g, "");
-    type = type.replace(/token/g, "");
-    type = type.replace(/tribal/g, "");
-    type = type.replace(/world/g, "");
-    type = type.replace(/\'/g, "");
-    type = type.replace(/\,/g, "");
-    type = type.trim();
+    let type = this.typeLine
+      .toLowerCase()
+      .replace(/hero/g, "")
+      .replace(/token/g, "")
+      .replace(/tribal/g, "")
+      .replace(/world/g, "")
+      .replace(/\'/g, "")
+      .replace(/\,/g, "")
+      .trim();
 
     if (includes(type, "//")) {
       const split = type.split("//");
@@ -109,8 +109,9 @@ export default class Card {
       type = split[0].trim();
     }
 
-    type = type.replace(/\s/g, "_");
-    type = type.replace(/\_\_/g, "_");
+    type = type
+      .replace(/\s/g, "_")
+      .replace(/\_\_/g, "_");
 
     if (!type) {
       type = "special";

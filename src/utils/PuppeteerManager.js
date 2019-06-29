@@ -17,11 +17,12 @@ export default class PuppeteerManager {
 
   /**
    * @param {string} url
-   * @param {string} waitForSelector
+   * @param {string} [waitForSelector]
    * @returns {Promise<void>}
    */
   async goto({ url, waitForSelector }) {
     await this.page.goto(url);
+    if (!waitForSelector) return;
     await this.page.waitForSelector(waitForSelector, { visible: true });
   }
 
@@ -47,6 +48,7 @@ export default class PuppeteerManager {
   }
 
   destroy() {
+    if (!this.browser) return;
     this.browser.close();
   }
 }

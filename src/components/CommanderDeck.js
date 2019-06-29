@@ -4,10 +4,10 @@ import find from "lodash/find";
 import includes from "lodash/includes";
 import arraySort, { SortBy } from "utils/ArraySort";
 import InventoryService from "services/InventoryService";
-import ScryfallCacheService from "services/ScryfallCacheService";
+import ScryfallCacheService from "services/ScryfallService";
 
 export default class CommanderDeck {
-  constructor() {
+  constructor({ onlyInventory = false }) {
     this.cards = [];
     this.types = {};
     this.tappedOut = {
@@ -18,6 +18,7 @@ export default class CommanderDeck {
     this.averageTypes = {};
     this.typeSuggestion = {};
     this.isCalculated = false;
+    this.onlyInventory = onlyInventory;
   }
 
   /**
@@ -111,7 +112,7 @@ export default class CommanderDeck {
   getMostRecommendedCards() {
     this._calculate();
 
-    const cards = filter(this.cards, { isCommander: false });
+    const cards = this._filterCards(false);
 
     return arraySort(cards, "percent", SortBy.DESCENDING);
   }
@@ -122,7 +123,7 @@ export default class CommanderDeck {
   getLeastPopularCardsInDeck() {
     this._calculate();
 
-    const cards = filter(this.cards, { isCommander: true });
+    const cards = this._filterCards(true);
 
     return arraySort(cards, "percent", SortBy.ASCENDING);
   }
@@ -133,7 +134,12 @@ export default class CommanderDeck {
   getTypedSuggestion() {
     this._calculate();
 
-    const sorted = arraySort(this.cards, "percent", SortBy.DESCENDING);
+    let { cards } = this;
+    if (this.onlyInventory) {
+      cards = filter(cards, card => { return card.inventory.amount > 0; });
+    }
+
+    const sorted = arraySort(cards, "percent", SortBy.DESCENDING);
     const averageTypes = cloneDeep(this.averageTypes);
     const typesCards = {};
 
@@ -198,7 +204,7 @@ export default class CommanderDeck {
 
     const typeSuggestion = cloneDeep(this.typeSuggestion);
     const suggestion = typeSuggestion[addRemove];
-    const filtered = filter(this.cards, { isCommander: inDeck });
+    const filtered = this._filterCards(inDeck);
     const sorted = arraySort(filtered, "percent", sortBy);
     const typedCards = {};
 
@@ -263,6 +269,27 @@ export default class CommanderDeck {
     this.typeSuggestion = { add, remove };
     this.averageTypes = types;
     this.isCalculated = true;
+  }
+
+  /**
+   * @param {boolean} inDeck
+   * @returns {Array}
+   * @private
+   */
+  _filterCards(inDeck) {
+    console.log("before isCommander:", this.cards.length);
+
+    let cards = filter(this.cards, { isCommander: inDeck });
+
+    console.log("after isCommander:", cards.length);
+
+    if (this.onlyInventory) {
+      cards = filter(cards, card => { return card.inventory.amount > 0; });
+    }
+
+    console.log("after inventory:", cards.length);
+
+    return cards;
   }
 
   /**

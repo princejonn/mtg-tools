@@ -1,7 +1,6 @@
-import { includes } from "lodash";
-import EDHRecThemeList from "models/EDHRecThemeList";
+import includes from "lodash/includes";
 import EDHRecRecommendation from "models/EDHRecRecommendation";
-import ScryfallCacheService from "services/ScryfallCacheService";
+import ScryfallCacheService from "services/ScryfallService";
 import BasePage from "utils/BasePage";
 import CacheTimeout from "utils/CacheTimeout";
 import RateLimit from "utils/RateLimit";
@@ -14,7 +13,7 @@ const Selector = {
   CARD_DESC: "div.nwdesc",
 };
 
-export default class EDHRecService extends BasePage {
+class EDHRecService extends BasePage {
   constructor() {
     super();
     this._themes = new NeDB(Collection.THEMES);
@@ -23,14 +22,14 @@ export default class EDHRecService extends BasePage {
 
   /**
    * @param {Commander} commander
-   * @returns {Promise<EDHRecThemeList>}
+   * @returns {Promise<Array<{type: string, text: string, url: string}>>}
    */
   async getThemeList(commander) {
     const timeout = new CacheTimeout({ days: 14 });
     const cached = await this._themes.find({ commander: commander.url });
 
     if (cached && timeout.isOK(cached.created)) {
-      return new EDHRecThemeList(cached);
+      return cached.themes;
     } if (cached && !timeout.isOK(cached.created)) {
       console.log("found themes in database with expired timeout:", commander.url);
       await this._themes.remove({ commander: commander.url });
@@ -38,9 +37,12 @@ export default class EDHRecService extends BasePage {
 
     console.log("searching for themes on edhrec:", commander.url);
     const data = await this._buildThemes(commander);
-    await this._themes.insert(data);
+    await this._themes.insert({
+      commander: commander.url,
+      themes: data,
+    });
 
-    return new EDHRecThemeList(data);
+    return data;
   }
 
   /**
@@ -66,7 +68,7 @@ export default class EDHRecService extends BasePage {
 
   /**
    * @param {Commander} commander
-   * @returns {Promise<{commander: string, themes: Array<{text: string, url: string, type: string}>}>}
+   * @returns {Promise<Array<{type: string, text: string, url: string}>>}
    * @private
    */
   async _buildThemes(commander) {
@@ -112,7 +114,7 @@ export default class EDHRecService extends BasePage {
 
     timerMessage.done();
 
-    return { commander: commander.url, themes };
+    return themes;
   }
 
   /**
@@ -173,4 +175,12 @@ export default class EDHRecService extends BasePage {
 
     return { url: theme.url, cards };
   }
+
+  destroy() {
+    this._manager.destroy();
+  }
 }
+
+const service = new EDHRecService();
+
+export default service;

@@ -1,16 +1,6 @@
 import Datastore from "nedb";
 import DateFns from "utils/DateFns";
-
-export const Collection = {
-  ALIASES: "aliases",
-  COMMANDERS: "commanders",
-  DECKS: "decks",
-  INVENTORY: "inventory",
-  LINKS: "links",
-  RECOMMENDATIONS: "recommendations",
-  SCRYFALL: "scryfall",
-  THEMES: "themes",
-};
+import Collection from "enums/Collection";
 
 class NeDBAdapter {
   constructor() {

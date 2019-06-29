@@ -1,4 +1,5 @@
-import adapter, { Collection } from "utils/NeDBAdapter";
+import adapter from "utils/NeDBAdapter";
+import Collection from "enums/Collection";
 
 export { Collection };
 

@@ -1,9 +1,10 @@
 /* eslint global-require: 0 */
-/* eslint import/no-dynamic-require: 0 */
 
 import path from "path";
 import download from "download";
-import { find, startsWith } from "lodash";
+import find from "lodash/find";
+import includes from "lodash/includes";
+import startsWith from "lodash/startsWith";
 import humps from "lodash-humps";
 import * as queryString from "query-string";
 import request from "request-promise-native";
@@ -15,7 +16,7 @@ import NeDB, { Collection } from "utils/NeDB";
 import RateLimit from "utils/RateLimit";
 import TimerMessage from "utils/TimerMessage";
 
-class ScryfallCacheService {
+class ScryfallService {
   constructor() {
     this._aliases = new NeDB(Collection.ALIASES);
     this._scryfall = new NeDB(Collection.SCRYFALL);
@@ -65,7 +66,7 @@ class ScryfallCacheService {
       return complexResult;
     }
 
-    const apiResult = await ScryfallCacheService._searchAPI(name);
+    const apiResult = await ScryfallService._searchAPI(name);
 
     if (apiResult && apiResult.id) {
       await this._aliases.insert({ name, id: apiResult.id });
@@ -145,7 +146,7 @@ class ScryfallCacheService {
         return card;
       }
 
-      if (ScryfallCacheService._parseQueryString(name) === ScryfallCacheService._parseQueryString(card.name)) {
+      if (ScryfallService._parseQueryString(name) === ScryfallService._parseQueryString(card.name)) {
         return card;
       }
 
@@ -165,12 +166,17 @@ class ScryfallCacheService {
    * @private
    */
   static async _searchAPI(name) {
+    if (includes(name, "//")) {
+      const split = name.split("//");
+      name = split[0].trim();
+    }
+
     const parsedName = queryString.parse(latinise(name));
     const query = queryString.stringify(parsedName);
     const url = `https://api.scryfall.com/cards/search?q=${query}`;
     let retry = 0;
 
-    const timerMessage = new TimerMessage(`requesting api [ ${name} ]`);
+    const timerMessage = new TimerMessage(`requesting api [ ${query} ]`);
 
     while (retry < 4) {
       await RateLimit.scryfall();
@@ -211,6 +217,6 @@ class ScryfallCacheService {
   }
 }
 
-const cache = new ScryfallCacheService();
+const cache = new ScryfallService();
 
 export default cache;

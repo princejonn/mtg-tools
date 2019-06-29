@@ -8,6 +8,9 @@
 /reports
 /jspm_packages
 
+# NPM
+.npmrc
+
 # Environment
 .env
 

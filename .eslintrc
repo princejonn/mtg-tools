@@ -1,18 +1,26 @@
 {
   "parser": "babel-eslint",
   "extends": [
-    "eslint:recommended",
-    "airbnb-base"
+    "eslint:recommended"
   ],
   "rules": {
     "array-bracket-spacing": [ "error", "always" ],
+    "comma-dangle": [ "error", "always-multiline" ],
+    "indent": [ "error", 2 ],
+    "object-curly-newline": [ "error", { "multiline": true } ],
+    "operator-linebreak": [ "error", "after", {
+      "overrides": {
+        "?": "before",
+        ":": "before"
+      }
+    }],
+    "quotes": [ "error", "double" ],
+    "no-undef": 0,
     "arrow-body-style": 0,
     "arrow-parens": 0,
     "camelcase": 0,
     "class-methods-use-this": 0,
-    "comma-dangle": [ "error", "always-multiline" ],
     "consistent-return": 0,
-    "indent": [ "error", 2 ],
     "max-len": 0,
     "new-parens": 0,
     "no-await-in-loop": 0,
@@ -27,15 +35,7 @@
     "no-unused-expressions": 0,
     "no-useless-escape": 0,
     "no-void": 0,
-    "object-curly-newline": [ "error", { "multiline": true } ],
-    "operator-linebreak": [ "error", "after", {
-      "overrides": {
-        "?": "before",
-        ":": "before"
-      }
-    }],
-    "radix": 0,
-    "quotes": [ "error", "double" ]
+    "radix": 0
   },
   "settings": {
     "import/resolver": {

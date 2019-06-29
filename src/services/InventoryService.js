@@ -1,5 +1,5 @@
 import find from "lodash/find";
-import ScryfallCacheService from "services/ScryfallCacheService";
+import ScryfallCacheService from "services/ScryfallService";
 import NeDB, { Collection } from "utils/NeDB";
 import TimerMessage from "utils/TimerMessage";
 

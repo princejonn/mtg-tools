@@ -32,6 +32,6 @@ export default class ReporterService {
 
     fs.appendFileSync(file, html);
 
-    console.log(`report can be found in:\n\n-->  ${file}  <--\n`);
+    console.log(`\nRead your report in:\n\n--> ${file}\n`);
   }
 }

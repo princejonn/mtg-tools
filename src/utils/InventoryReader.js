@@ -4,14 +4,14 @@ import CSVtoJSON from "csvtojson";
 import latinise from "utils/Latinise";
 import TimerMessage from "./TimerMessage";
 
-const returnCsv = async file => {
+const returnCsv = async (file, nameKey = "Name", amountKey = "Quantity") => {
   const cards = {};
 
   const jsonArray = await CSVtoJSON().fromFile(file);
 
   for (const card of jsonArray) {
-    const name = latinise(card.Name.trim());
-    const amount = parseInt(card.Quantity, 10);
+    const name = latinise(card[nameKey].trim());
+    const amount = parseInt(card[amountKey], 10);
 
     if (!cards[name]) {
       cards[name] = 0;
@@ -59,12 +59,18 @@ const returnLines = async file => {
   return cards;
 };
 
-export default async file => {
+/**
+ * @param {string} file
+ * @param {string} [nameKey]
+ * @param {string} [amountKey]
+ * @returns {Promise<*>}
+ */
+export default async (file, nameKey, amountKey) => {
   const ext = path.extname(file);
   const timerMessage = new TimerMessage("loading file");
 
   if (ext === ".csv") {
-    const result = returnCsv(file);
+    const result = returnCsv(file, nameKey, amountKey);
     timerMessage.done();
     return result;
   }
