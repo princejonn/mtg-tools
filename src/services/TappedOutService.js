@@ -82,7 +82,7 @@ class TappedOutService extends BasePage {
     const timeout = new CacheTimeout({ days: 14 });
 
     const query = {
-      commander: commander.url,
+      commander: commander.queryString,
       price: budget.price,
     };
 
@@ -95,11 +95,11 @@ class TappedOutService extends BasePage {
     if (cached && timeout.isOK(cached.created)) {
       return new TappedOutLinkList(cached);
     } if (cached && !timeout.isOK(cached.created)) {
-      console.log("found links in database with expired timeout:", commander.url);
-      await this._links.remove({ commander: commander.url });
+      console.log("found links in database with expired timeout:", commander.queryString);
+      await this._links.remove({ commander: commander.queryString });
     }
 
-    console.log("searching for links on tapped out:", commander.url);
+    console.log("searching for links on tapped out:", commander.queryString);
     const data = await this._buildSimilarLinks(commander, budget, hubs);
     await this._links.insert(data);
 
@@ -159,7 +159,7 @@ class TappedOutService extends BasePage {
   /**
    * @param {string} url
    * @param {TappedOutAccount} account
-   * @returns {Promise<{url: string, name: string, queryString: string}>}
+   * @returns {Promise<{name: string, url: string}>}
    * @private
    */
   async _buildCommander(url, account) {
@@ -183,15 +183,9 @@ class TappedOutService extends BasePage {
     name = name.replace(/\s{2,}/g, "");
     name = name.replace(/\n/g, "");
 
-    const queryString = name
-      .replace(/\s/g, "-")
-      .replace(/\'/g, "")
-      .replace(/\,/g, "")
-      .toLowerCase();
-
     timerMessage.done();
 
-    return { name, url, queryString };
+    return { name, url };
   }
 
   /**
@@ -249,7 +243,7 @@ class TappedOutService extends BasePage {
 
     timerMessage.done();
 
-    return { commander: commander.url, price: budget.num, hubs, links };
+    return { commander: commander.queryString, price: budget.num, hubs, links };
   }
 
   /**

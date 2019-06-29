@@ -7,7 +7,11 @@ import InventoryService from "services/InventoryService";
 import ScryfallCacheService from "services/ScryfallService";
 
 export default class CommanderDeck {
-  constructor({ onlyInventory = false }) {
+  /**
+   * @param {object} [options]
+   * @param {boolean} [options.onlyInventory]
+   */
+  constructor(options = {}) {
     this.cards = [];
     this.types = {};
     this.tappedOut = {
@@ -18,7 +22,7 @@ export default class CommanderDeck {
     this.averageTypes = {};
     this.typeSuggestion = {};
     this.isCalculated = false;
-    this.onlyInventory = onlyInventory;
+    this.onlyInventory = options.onlyInventory || false;
   }
 
   /**
@@ -277,17 +281,11 @@ export default class CommanderDeck {
    * @private
    */
   _filterCards(inDeck) {
-    console.log("before isCommander:", this.cards.length);
-
     let cards = filter(this.cards, { isCommander: inDeck });
-
-    console.log("after isCommander:", cards.length);
 
     if (this.onlyInventory) {
       cards = filter(cards, card => { return card.inventory.amount > 0; });
     }
-
-    console.log("after inventory:", cards.length);
 
     return cards;
   }

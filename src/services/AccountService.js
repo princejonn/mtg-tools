@@ -5,7 +5,6 @@ import encUTF8 from "crypto-js/enc-utf8";
 import NeDB, { Collection } from "utils/NeDB";
 import TimerMessage from "utils/TimerMessage";
 import TappedOutAccount from "models/TappedOutAccount";
-import InquiryService from "services/InquiryService";
 
 class AccountService {
   constructor() {
@@ -14,27 +13,6 @@ class AccountService {
     this._secret = "secret";
     this._cache = {};
     this._loaded = false;
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async login() {
-    const { username, password } = await InquiryService.loginForm();
-
-    if (!isString(username)) {
-      throw new Error("username undefined");
-    }
-    if (!isString(password)) {
-      throw new Error("password undefined");
-    }
-
-    await this.save(username, password);
-    const account = await this.get();
-
-    if (!account) {
-      throw new Error("account service could not properly save your account");
-    }
   }
 
   /**
@@ -154,6 +132,6 @@ class AccountService {
   }
 }
 
-const accountService = new AccountService();
+const service = new AccountService();
 
-export default accountService;
+export default service;

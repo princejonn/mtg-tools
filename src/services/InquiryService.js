@@ -1,11 +1,13 @@
 import inquirer from "inquirer";
 import inquirerCheckboxPlusPrompt from "inquirer-checkbox-plus-prompt";
 import find from "lodash/find";
+import isString from "lodash/isString";
 import * as fuzzy from "fuzzy";
 import BudgetList from "enums/BudgetList";
 import EDHRecTheme from "models/EDHRecTheme";
-import EDHRecService from "services/EDHRecService";
 import TappedOutBudget from "models/TappedOutBudget";
+import AccountService from "services/AccountService";
+import EDHRecService from "services/EDHRecService";
 import TappedOutService from "services/TappedOutService";
 
 inquirer.registerPrompt("checkbox-plus", inquirerCheckboxPlusPrompt);
@@ -26,18 +28,49 @@ const loginForm = [
 
 export default class InquiryService {
   /**
-   * @returns {Promise<void>}
+   * @param {boolean} forceLogin
+   * @returns {Promise<TappedOutAccount>}
    */
-  static async loginForm() {
-    return inquirer.prompt(loginForm);
+  static async loginAccount(forceLogin = false) {
+    if (!forceLogin) {
+      const exists = await AccountService.get();
+      if (exists) {
+        return exists;
+      }
+    }
+
+    const { username, password } = await inquirer.prompt(loginForm);
+
+    if (!isString(username)) {
+      throw new Error("username undefined");
+    }
+    if (!isString(password)) {
+      throw new Error("password undefined");
+    }
+
+    await AccountService.save(username, password);
+    const account = await AccountService.get();
+
+    if (!account) {
+      throw new Error("account service could not properly save your account");
+    }
   }
 
   /**
-   * @param commander
+   * @param {Commander} commander
+   * @param {string} programOption
    * @returns {Promise<EDHRecTheme>}
    */
-  static async selectTheme(commander) {
+  static async selectTheme(commander, programOption) {
     const themeList = await EDHRecService.getThemeList(commander);
+
+    if (isString(programOption)) {
+      const exists = find(themeList, { num: parseInt(programOption, 10) });
+      if (exists) {
+        return new EDHRecTheme(exists);
+      }
+    }
+
     const choices = InquiryService._listChoices(themeList);
 
     const { text } = await inquirer.prompt([ {
@@ -52,9 +85,17 @@ export default class InquiryService {
   }
 
   /**
+   * @param {string} programOption
    * @returns {Promise<TappedOutBudget>}
    */
-  static async selectBudget() {
+  static async selectBudget(programOption) {
+    if (isString(programOption)) {
+      const exists = find(BudgetList, { num: parseInt(programOption, 10) });
+      if (exists) {
+        return new TappedOutBudget(exists);
+      }
+    }
+
     const choices = InquiryService._listChoices(BudgetList);
 
     const { text } = await inquirer.prompt([ {
@@ -69,9 +110,14 @@ export default class InquiryService {
   }
 
   /**
+   * @param {string} programOption
    * @returns {Promise<string>}
    */
-  static async selectHubs() {
+  static async selectHubs(programOption) {
+    if (isString(programOption)) {
+      return programOption;
+    }
+
     const hubsList = await TappedOutService.getValidHubs();
 
     const { list } = await inquirer.prompt([ {

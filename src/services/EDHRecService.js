@@ -26,19 +26,19 @@ class EDHRecService extends BasePage {
    */
   async getThemeList(commander) {
     const timeout = new CacheTimeout({ days: 14 });
-    const cached = await this._themes.find({ commander: commander.url });
+    const cached = await this._themes.find({ commander: commander.queryString });
 
     if (cached && timeout.isOK(cached.created)) {
       return cached.themes;
     } if (cached && !timeout.isOK(cached.created)) {
-      console.log("found themes in database with expired timeout:", commander.url);
-      await this._themes.remove({ commander: commander.url });
+      console.log("found themes in database with expired timeout:", commander.queryString);
+      await this._themes.remove({ commander: commander.queryString });
     }
 
-    console.log("searching for themes on edhrec:", commander.url);
+    console.log("searching for themes on edhrec:", commander.queryString);
     const data = await this._buildThemes(commander);
     await this._themes.insert({
-      commander: commander.url,
+      commander: commander.queryString,
       themes: data,
     });
 

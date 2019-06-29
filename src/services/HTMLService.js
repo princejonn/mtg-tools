@@ -54,6 +54,15 @@ export default class HTMLService {
    * @param {CommanderDeck} commanderDeck
    * @returns {string}
    */
+  static getTypedSuggestionDeckList(commanderDeck) {
+    const suggestion = commanderDeck.getTypedSuggestion();
+    return this._buildTypedDeckList(suggestion);
+  }
+
+  /**
+   * @param {CommanderDeck} commanderDeck
+   * @returns {string}
+   */
   static getCardsToAdd(commanderDeck) {
     const suggestion = commanderDeck.getCardsToAdd();
     return this._buildSuggestionHTML(suggestion, "Add the following cards to have correct types amount");
@@ -87,6 +96,30 @@ export default class HTMLService {
       for (const card of cards) {
         content.push(HTMLService._buildCardHTML(card));
       }
+    }
+
+    content.push("</section>");
+
+    return content.join("");
+  }
+
+  static _buildTypedDeckList(suggestion) {
+    const content = [];
+
+    content.push(`<section class="deck-list">`);
+
+    for (const key in suggestion) {
+      if (!suggestion.hasOwnProperty(key)) continue;
+      const cards = suggestion[key];
+      if (!cards.length) continue;
+
+      content.push(`<div class="deck-list-type">`);
+
+      for (const card of cards) {
+        content.push(`1x ${card.name}<br/>`);
+      }
+
+      content.push(`</div>`);
     }
 
     content.push("</section>");
@@ -206,6 +239,19 @@ export default class HTMLService {
 }
 .card-data-col span {
   font-weight: bold;
+}
+.deck-list {
+  display: flex;
+  justify-content: space-around;
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding: 10px;
+}
+.deck-list-type {
+  width: 300px;
+  padding: 10px;
+  text-align: center;
+  font-size: 12pt;
 }
 .font-large {
   font-size: 23pt;

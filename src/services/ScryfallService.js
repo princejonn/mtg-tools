@@ -217,6 +217,6 @@ class ScryfallService {
   }
 }
 
-const cache = new ScryfallService();
+const service = new ScryfallService();
 
-export default cache;
+export default service;
