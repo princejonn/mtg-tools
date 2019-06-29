@@ -21,11 +21,11 @@ export default class ReporterService {
     }
 
     const content = [];
-    content.push(HTMLService.getCardsToAdd(commanderDeck));
-    content.push(HTMLService.getCardsToRemove(commanderDeck));
-
     content.push(HTMLService.getRecommendation(commanderDeck, 16));
     content.push(HTMLService.getLeastPopular(commanderDeck, 12));
+
+    content.push(HTMLService.getCardsToAdd(commanderDeck));
+    content.push(HTMLService.getCardsToRemove(commanderDeck));
 
     const file = path.join(cwd, `improve-${commander.queryString}-${now}.html`);
     const html = HTMLService.buildReportHTML(commander, content);

@@ -60,9 +60,6 @@ class NeDBAdapter {
     if (!data.created) {
       data.created = DateFns.format();
     }
-    if (!data._id && data.id) {
-      data._id = data.id;
-    }
 
     return new Promise((resolve, reject) => {
       this._db[collection].insert(data, (err, result) => {

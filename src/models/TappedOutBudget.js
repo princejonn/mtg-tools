@@ -1,8 +1,7 @@
-export default class EDHRecTheme {
+export default class TappedOutBudget {
   constructor(data) {
     this.text = data.text;
-    this.url = data.url;
-    this.type = data.type;
+    this.price = parseInt(data.price, 10);
     this.num = parseInt(data.num, 10);
   }
 }

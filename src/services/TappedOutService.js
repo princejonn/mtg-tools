@@ -70,10 +70,11 @@ export default class TappedOutService extends BasePage {
 
   /**
    * @param {Commander} commander
+   * @param {TappedOutBudget} budget
    * @returns {Promise<TappedOutLinkList>}
    */
-  async getSimilarLinks(commander) {
-    const timeout = new CacheTimeout({ days: 7 });
+  async getSimilarLinks(commander, budget) {
+    const timeout = new CacheTimeout({ days: 14 });
     const cached = await this._links.find({ commander: commander.url });
 
     if (cached && timeout.isOK(cached.created)) {
@@ -84,7 +85,7 @@ export default class TappedOutService extends BasePage {
     }
 
     console.log("searching for links on tapped out:", commander.url);
-    const data = await this._buildSimilarLinks(commander);
+    const data = await this._buildSimilarLinks(commander, budget);
     await this._links.insert(data);
 
     return new TappedOutLinkList(data);
@@ -154,22 +155,25 @@ export default class TappedOutService extends BasePage {
 
   /**
    * @param {Commander} commander
+   * @param {TappedOutBudget} budget
    * @returns {Promise<{commander: string, links: Array<string>}>}
    * @private
    */
-  async _buildSimilarLinks(commander) {
+  async _buildSimilarLinks(commander, budget) {
     await super._init();
 
-    const timerMessage = new TimerMessage("finding similar links");
+    const timerMessage = new TimerMessage(`finding similar links with ${budget.text}`);
 
     const maxPages = 5;
-    const baseUrl = `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commander.queryString}&price_0=&price_1=&o=-rating&submit=Filter+results`;
+    const baseUrl = `https://tappedout.net/mtg-decks/search/?q=&format=edh&general=${commander.queryString}&price_0=&price_1=${budget.price}&o=-rating&submit=Filter+results`;
     const links = [];
     let page = 1;
 
     while (page <= maxPages) {
       const searchUrl = `${baseUrl}&p=${page}&page=${page}`;
       await RateLimit.tappedOut();
+
+      console.log("searching:", searchUrl);
 
       try {
         await this._manager.goto({
@@ -251,6 +255,7 @@ export default class TappedOutService extends BasePage {
       } catch (err) {
         retry += 1;
         console.log("error while trying to find deck on tapped out. retrying:", retry);
+        console.error(err);
       }
     }
   }

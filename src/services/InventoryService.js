@@ -1,3 +1,4 @@
+import find from "lodash/find";
 import ScryfallCacheService from "services/ScryfallCacheService";
 import NeDB, { Collection } from "utils/NeDB";
 import TimerMessage from "utils/TimerMessage";
@@ -5,6 +6,8 @@ import TimerMessage from "utils/TimerMessage";
 class InventoryService {
   constructor() {
     this._db = new NeDB(Collection.INVENTORY);
+    this._cache = [];
+    this._loaded = false;
   }
 
   /**
@@ -12,11 +15,28 @@ class InventoryService {
    * @returns {Promise<number>}
    */
   async getAmount(id) {
-    const exists = await this._db.find({ id });
+    await this.load();
+
+    const exists = find(this._cache, { id });
     if (!exists) {
       return 0;
     }
+
     return exists.amount;
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async load() {
+    if (this._loaded) return;
+
+    const timerMessage = new TimerMessage("loading inventory cache");
+
+    this._cache = await this._db.get();
+    this._loaded = true;
+
+    timerMessage.done();
   }
 
   /**

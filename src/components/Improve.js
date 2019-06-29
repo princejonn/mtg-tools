@@ -2,11 +2,12 @@ import { includes } from "lodash";
 import CommanderDeck from "components/CommanderDeck";
 import TappedOutAccount from "models/TappedOutAccount";
 import EDHRecService from "services/EDHRecService";
+import InventoryService from "services/InventoryService";
 import ReadLineService from "services/ReadLineService";
 import ReporterService from "services/ReporterService";
+import ScryfallCacheService from "services/ScryfallCacheService";
 import TappedOutService from "services/TappedOutService";
 import TimerMessage from "utils/TimerMessage";
-import ScryfallCacheService from "../services/ScryfallCacheService";
 
 export default class Improve {
   constructor(url, username, password) {
@@ -19,6 +20,7 @@ export default class Improve {
 
   async main() {
     await ScryfallCacheService.load();
+    await InventoryService.load();
 
     const edhRec = new EDHRecService();
     const tappedOut = new TappedOutService();
@@ -29,8 +31,9 @@ export default class Improve {
 
     const tm1 = new TimerMessage("improving deck");
     const theme = await ReadLineService.selectTheme(themeList);
+    const budget = await ReadLineService.selectBudget();
     const recommendation = await edhRec.getRecommendation(theme);
-    const linkList = await tappedOut.getSimilarLinks(commander);
+    const linkList = await tappedOut.getSimilarLinks(commander, budget);
 
     for (const link of linkList.links) {
       const deck = await tappedOut.getDeck(link);

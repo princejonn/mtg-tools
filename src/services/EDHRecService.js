@@ -66,7 +66,7 @@ export default class EDHRecService extends BasePage {
 
   /**
    * @param {Commander} commander
-   * @returns {Promise<{commander: string, themes: Array<{theme: string, link: string, type: string}>}>}
+   * @returns {Promise<{commander: string, themes: Array<{text: string, url: string, type: string}>}>}
    * @private
    */
   async _buildThemes(commander) {
@@ -86,18 +86,18 @@ export default class EDHRecService extends BasePage {
     });
 
     let num = 0;
-    themes.push({ theme: "no theme/budget", url: commanderUrl, type: "none", num });
+    themes.push({ text: "no theme/budget", url: commanderUrl, type: "none", num });
 
     const elements = await this._manager.page.$$(themeSelector);
     for (const element of elements) {
       const href = await this._manager.getElementAttribute(element, "href");
 
-      let theme = await this._manager.getElementText(element);
-      theme = theme.replace(/\s{2,}/g, "");
-      theme = theme.replace(/\n/g, "");
+      let text = await this._manager.getElementText(element);
+      text = text.replace(/\s{2,}/g, "");
+      text = text.replace(/\n/g, "");
 
       const object = {
-        theme,
+        text,
         url: `https://edhrec.com/commanders/${href}`,
       };
 

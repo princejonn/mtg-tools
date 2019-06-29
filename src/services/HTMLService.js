@@ -1,3 +1,5 @@
+/* eslint quotes: 0 */
+
 export default class HTMLService {
   /**
    * @param {Commander} commander
@@ -54,7 +56,7 @@ export default class HTMLService {
    */
   static getCardsToAdd(commanderDeck) {
     const suggestion = commanderDeck.getCardsToAdd();
-    return this._buildSuggestionHTML(suggestion, "Add the following cards");
+    return this._buildSuggestionHTML(suggestion, "Add the following cards to have correct types amount");
   }
 
   /**
@@ -63,7 +65,7 @@ export default class HTMLService {
    */
   static getCardsToRemove(commanderDeck) {
     const suggestion = commanderDeck.getCardsToRemove();
-    return this._buildSuggestionHTML(suggestion, "Remove the following cards");
+    return this._buildSuggestionHTML(suggestion, "Remove the following cards to have correct types amount");
   }
 
   /**
@@ -76,18 +78,18 @@ export default class HTMLService {
     const content = [];
 
     content.push(`<header class="card-list-header font-large">${header}</header>`);
+    content.push(`<section class="card-list">`);
 
     for (const key in suggestion) {
       if (!suggestion.hasOwnProperty(key)) continue;
       const cards = suggestion[key];
       if (!cards.length) continue;
-      content.push(`<header class="card-list-header font-medium">${key.replace(/\_/g, " ").toUpperCase()}</header>`);
-      content.push("<section class=\"card-list\">");
       for (const card of cards) {
         content.push(HTMLService._buildCardHTML(card));
       }
-      content.push("</section>");
     }
+
+    content.push("</section>");
 
     return content.join("");
   }
@@ -117,6 +119,7 @@ export default class HTMLService {
 
     return (`
 <div class="card-container" data-id="${card.id}">
+  <div class="card-name">1x ${card.name}</div>
   <div class="card-image">
     <a href="${card.scryfallUri}" target="_blank">
       <img class="card-image-img" src="${card.image}" alt="${card.name}"/>
@@ -165,17 +168,24 @@ export default class HTMLService {
 .card-container {
   padding: 10px;
 }
+.card-name {
+  display: block;
+  color: darkgray;
+  padding-bottom: 3px;
+  font-size: 9pt;
+  text-align: center;
+}
+.card-image-img {
+  width: 250px;
+}
 .card-border {
-  height: 5px;
+  height: 4px;
 }
 .card-border-green {
   background-color: limegreen;
 }
 .card-border-red {
   background-color: red;
-}
-.card-image-img {
-  width: 250px;
 }
 .card-data {
   display: flex;
