@@ -12,8 +12,8 @@ export default class ReporterService {
   static async buildImproveReport(commander, commanderDeck) {
     const content = [];
 
-    content.push(HTMLService.getRecommendation(commanderDeck, 16));
-    content.push(HTMLService.getLeastPopular(commanderDeck, 12));
+    content.push(HTMLService.getSuggestedCards(commanderDeck, 16));
+    content.push(HTMLService.getLeastPopularCards(commanderDeck, 12));
     content.push(HTMLService.getCardsToAdd(commanderDeck));
     content.push(HTMLService.getCardsToRemove(commanderDeck));
 
@@ -28,9 +28,9 @@ export default class ReporterService {
   static async buildRecommendReport(commander, commanderDeck) {
     const content = [];
 
-    content.push(HTMLService.getTypedSuggestion(commanderDeck));
-    content.push(HTMLService.getTypedSuggestionDeckList(commanderDeck));
-    content.push(HTMLService.getRecommendation(commanderDeck, 32));
+    content.push(HTMLService.getTypedRecommendation(commanderDeck));
+    content.push(HTMLService.getTypedRecommendationDeckList(commander, commanderDeck));
+    content.push(HTMLService.getSuggestedCards(commanderDeck, 32));
 
     ReporterService._saveReport(commander, content, "recommend");
   }

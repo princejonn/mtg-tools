@@ -23,12 +23,12 @@ program
   .description("improving your commander deck")
   .arguments("<url>")
 
-  .option("-l, --login", "forcing program to use the login form")
-  .option("-e, --inventory", "using only cards from the inventory")
-
   .option("-t, --theme [theme]", "using edh-rec theme by number")
   .option("-g, --budget [budget]", "using tapped-out budget by number")
   .option("-b, --hubs [hubs]", "using hubs by comma separated strings")
+
+  .option("-l, --login", "forcing program to use the login form")
+  .option("-e, --inventory", "using only cards from the inventory")
 
   .action(async (url, cmd) => {
     await improve({
@@ -73,12 +73,15 @@ program
   .option("-g, --budget [budget]", "using tapped-out budget by number")
   .option("-b, --hubs [hubs]", "using hubs by comma separated strings")
 
+  .option("-e, --inventory", "using only cards from the inventory")
+
   .action(async (name, cmd) => {
     await recommend({
       name,
       theme: cmd.theme,
       budget: cmd.budget,
       hubs: cmd.hubs,
+      onlyInventory: cmd.inventory,
     });
   });
 

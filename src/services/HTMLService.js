@@ -20,8 +20,8 @@ export default class HTMLService {
    * @param {number} maximum
    * @returns {string}
    */
-  static getRecommendation(commanderDeck, maximum) {
-    const cards = commanderDeck.getMostRecommendedCards();
+  static getSuggestedCards(commanderDeck, maximum) {
+    const cards = commanderDeck.getMostSuggestedCards();
     const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
 
     return (`<header class="card-list-header font-large">Consider adding these cards</header>
@@ -33,7 +33,7 @@ export default class HTMLService {
    * @param {number} maximum
    * @returns {string}
    */
-  static getLeastPopular(commanderDeck, maximum) {
+  static getLeastPopularCards(commanderDeck, maximum) {
     const cards = commanderDeck.getLeastPopularCardsInDeck();
     const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
 
@@ -45,18 +45,19 @@ export default class HTMLService {
    * @param {CommanderDeck} commanderDeck
    * @returns {string}
    */
-  static getTypedSuggestion(commanderDeck) {
-    const suggestion = commanderDeck.getTypedSuggestion();
+  static getTypedRecommendation(commanderDeck) {
+    const suggestion = commanderDeck.getTypedRecommendation();
     return this._buildSuggestionHTML(suggestion, "Recommendation based on types");
   }
 
   /**
+   * @param {Commander} commander
    * @param {CommanderDeck} commanderDeck
    * @returns {string}
    */
-  static getTypedSuggestionDeckList(commanderDeck) {
-    const suggestion = commanderDeck.getTypedSuggestion();
-    return this._buildTypedDeckList(suggestion);
+  static getTypedRecommendationDeckList(commander, commanderDeck) {
+    const suggestion = commanderDeck.getTypedRecommendation();
+    return this._buildTypedDeckList(commander, suggestion);
   }
 
   /**
@@ -103,10 +104,19 @@ export default class HTMLService {
     return content.join("");
   }
 
-  static _buildTypedDeckList(suggestion) {
+  /**
+   * @param {Commander} commander
+   * @param {object} suggestion
+   * @returns {string}
+   * @private
+   */
+  static _buildTypedDeckList(commander, suggestion) {
     const content = [];
 
     content.push(`<section class="deck-list">`);
+    content.push(`<div class="deck-list-type">`);
+    content.push(`<span class="deck-list-name">1x ${commander.name} *CMDR*<br/></span>`);
+    content.push(`</div>`);
 
     for (const key in suggestion) {
       if (!suggestion.hasOwnProperty(key)) continue;
@@ -116,7 +126,11 @@ export default class HTMLService {
       content.push(`<div class="deck-list-type">`);
 
       for (const card of cards) {
-        content.push(`1x ${card.name}<br/>`);
+        const fontColor = card.inventory.amount > 0
+          ? "green"
+          : "red";
+
+        content.push(`<span class="deck-list-name font-${fontColor}">1x ${card.name}<br/></span>`);
       }
 
       content.push(`</div>`);
@@ -248,10 +262,9 @@ export default class HTMLService {
   padding: 10px;
 }
 .deck-list-type {
-  width: 300px;
+  width: 250px;
   padding: 10px;
   text-align: center;
-  font-size: 12pt;
 }
 .font-large {
   font-size: 23pt;
@@ -263,6 +276,15 @@ export default class HTMLService {
 }
 .font-small {
   font-size: 7pt;
+}
+.deck-list-name {
+  font-size: 11pt;
+}
+.font-green {
+  color: limegreen;
+}
+.font-red {
+  color: red;
 }
 </style>`);
   }

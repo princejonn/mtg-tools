@@ -113,7 +113,7 @@ export default class CommanderDeck {
   /**
    * @returns {Array<Card>}
    */
-  getMostRecommendedCards() {
+  getMostSuggestedCards() {
     this._calculate();
 
     const cards = this._filterCards(false);
@@ -135,7 +135,7 @@ export default class CommanderDeck {
   /**
    * @returns {object}
    */
-  getTypedSuggestion() {
+  getTypedRecommendation() {
     this._calculate();
 
     let { cards } = this;

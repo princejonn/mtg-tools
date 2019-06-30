@@ -62,12 +62,11 @@ export default async ({ url, theme, budget, hubs, forceLogin, onlyInventory }) =
     await ReporterService.buildImproveReport(commander, commanderDeck);
 
     let quicker = `mtg-tools i ${url}`;
+    if (onlyInventory) quicker += " -e";
     quicker += ` -g ${budgetChoice.num}`;
     quicker += ` -t ${themeChoice.num}`;
-
-    if (hubsChoice) {
-      quicker += ` -b ${hubsChoice}`;
-    }
+    if (hubsChoice) quicker += ` -b ${hubsChoice}`;
+    if (!hubsChoice) quicker += " -b \"\"";
 
     console.log(`to run this again quicker - copy and paste this into your command prompt:\n\n--> ${quicker}\n`);
   } catch (err) {

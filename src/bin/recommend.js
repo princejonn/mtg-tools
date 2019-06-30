@@ -15,7 +15,7 @@ import TimerMessage from "utils/TimerMessage";
  * @param {string} hubs
  * @returns {Promise<void>}
  */
-export default async ({ name, theme, budget, hubs }) => {
+export default async ({ name, theme, budget, hubs, onlyInventory }) => {
   try {
     await ScryfallService.load();
     await InventoryService.load();
@@ -41,7 +41,7 @@ export default async ({ name, theme, budget, hubs }) => {
     tm1.done();
 
     const tm2 = new TimerMessage("finalizing deck");
-    const commanderDeck = new CommanderDeck();
+    const commanderDeck = new CommanderDeck({ onlyInventory });
     await commanderDeck.addEDHRecommendation(recommendation);
 
     for (const deck of decks) {
@@ -53,12 +53,11 @@ export default async ({ name, theme, budget, hubs }) => {
     await ReporterService.buildRecommendReport(commander, commanderDeck);
 
     let quicker = `mtg-tools r "${name}"`;
+    if (onlyInventory) quicker += " -e";
     quicker += ` -g ${budgetChoice.num}`;
     quicker += ` -t ${themeChoice.num}`;
-
-    if (hubsChoice) {
-      quicker += ` -b ${hubsChoice}`;
-    }
+    if (hubsChoice) quicker += ` -b ${hubsChoice}`;
+    if (!hubsChoice) quicker += " -b \"\"";
 
     console.log(`to run this again quicker - copy and paste this into your command prompt:\n\n--> ${quicker}\n`);
   } catch (err) {
