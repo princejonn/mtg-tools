@@ -88,6 +88,8 @@ class TappedOutService extends BasePage {
 
     if (hubs) {
       query.hubs = hubs;
+    } else {
+      query.hubs = "";
     }
 
     const cached = await this._links.find(query);
