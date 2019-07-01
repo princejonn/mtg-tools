@@ -7,11 +7,16 @@ export default class ReporterService {
   /**
    * @param {Commander} commander
    * @param {CommanderDeck} commanderDeck
+   * @param {object} programOptions
    * @returns {Promise<void>}
    */
-  static async buildImproveReport(commander, commanderDeck) {
+  static async buildImproveReport({ commander, commanderDeck, ...programOptions }) {
     const content = [];
 
+    const quicker = ReporterService._getQuickCommand(`i ${commander.url}`, programOptions);
+    console.log(`\nto run this again - paste this:\n\n--> ${quicker}\n`);
+
+    content.push(HTMLService.getQuickCommand(quicker));
     content.push(HTMLService.getSuggestedCards(commanderDeck, 16));
     content.push(HTMLService.getLeastPopularCards(commanderDeck, 12));
     content.push(HTMLService.getCardsToAdd(commanderDeck));
@@ -23,13 +28,18 @@ export default class ReporterService {
   /**
    * @param {Commander} commander
    * @param {CommanderDeck} commanderDeck
+   * @param {object} programOptions
    * @returns {Promise<void>}
    */
-  static async buildRecommendReport(commander, commanderDeck) {
+  static async buildRecommendReport({ commander, commanderDeck, ...programOptions }) {
     const content = [];
 
-    content.push(HTMLService.getTypedRecommendation(commanderDeck));
+    const quicker = ReporterService._getQuickCommand(`r "${commander.name}"`, programOptions);
+    console.log(`\nTo run this again: --> ${quicker}\n`);
+
+    content.push(HTMLService.getQuickCommand(quicker));
     content.push(HTMLService.getTypedRecommendationDeckList(commander, commanderDeck));
+    content.push(HTMLService.getTypedRecommendation(commanderDeck));
     content.push(HTMLService.getSuggestedCards(commanderDeck, 32));
 
     ReporterService._saveReport(commander, content, "recommend");
@@ -66,6 +76,26 @@ export default class ReporterService {
 
     fs.appendFileSync(file, html);
 
-    console.log(`\nRead your report in:\n\n--> ${file}\n`);
+    console.log(`\nTo read your report: --> ${file}\n`);
+  }
+
+  /**
+   * @param {string} program
+   * @param {{budgetChoice: object, themeChoice: object, inventoryChoice: object, topChoice: object, hubsChoice: string}} programOptions
+   * @returns {string}
+   * @private
+   */
+  static _getQuickCommand(program, programOptions) {
+    let quicker = `mtg-tools ${program}`;
+
+    quicker += ` -g ${programOptions.budgetChoice.num}`;
+    quicker += ` -t ${programOptions.themeChoice.num}`;
+    quicker += ` -e ${programOptions.inventoryChoice.num}`;
+    quicker += ` -p ${programOptions.topChoice.num}`;
+
+    if (programOptions.hubsChoice) quicker += ` -b ${programOptions.hubsChoice}`;
+    if (!programOptions.hubsChoice) quicker += " -b \"\"";
+
+    return quicker;
   }
 }

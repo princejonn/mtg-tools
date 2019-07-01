@@ -15,13 +15,20 @@ export default class HTMLService {
     return html;
   }
 
+  static getQuickCommand(command) {
+    return (`<div class="card-list-header font-medium font-gray">${command}</div>`);
+  }
+
   /**
    * @param {CommanderDeck} commanderDeck
    * @param {number} maximum
    * @returns {string}
    */
   static getSuggestedCards(commanderDeck, maximum) {
-    const cards = commanderDeck.getMostSuggestedCards();
+    const cards = commanderDeck.mostSuggestedCards;
+    if (maximum > cards.length) {
+      maximum = cards.length;
+    }
     const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
 
     return (`<header class="card-list-header font-large">Consider adding these cards</header>
@@ -34,20 +41,14 @@ export default class HTMLService {
    * @returns {string}
    */
   static getLeastPopularCards(commanderDeck, maximum) {
-    const cards = commanderDeck.getLeastPopularCardsInDeck();
+    const cards = commanderDeck.leastPopularCardsInDeck;
+    if (maximum > cards.length) {
+      maximum = cards.length;
+    }
     const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
 
     return (`<header class="card-list-header font-large">Consider removing these cards</header>
     <section class="card-list">${array.join("")}</section>`);
-  }
-
-  /**
-   * @param {CommanderDeck} commanderDeck
-   * @returns {string}
-   */
-  static getTypedRecommendation(commanderDeck) {
-    const suggestion = commanderDeck.getTypedRecommendation();
-    return this._buildSuggestionHTML(suggestion, "Recommendation based on types");
   }
 
   /**
@@ -56,8 +57,15 @@ export default class HTMLService {
    * @returns {string}
    */
   static getTypedRecommendationDeckList(commander, commanderDeck) {
-    const suggestion = commanderDeck.getTypedRecommendation();
-    return this._buildTypedDeckList(commander, suggestion);
+    return this._buildTypedDeckList(commander, commanderDeck.typedRecommendation);
+  }
+
+  /**
+   * @param {CommanderDeck} commanderDeck
+   * @returns {string}
+   */
+  static getTypedRecommendation(commanderDeck) {
+    return this._buildSuggestionHTML(commanderDeck.typedRecommendation, "Recommendation based on types");
   }
 
   /**
@@ -65,8 +73,7 @@ export default class HTMLService {
    * @returns {string}
    */
   static getCardsToAdd(commanderDeck) {
-    const suggestion = commanderDeck.getCardsToAdd();
-    return this._buildSuggestionHTML(suggestion, "Add the following cards to have correct types amount");
+    return this._buildSuggestionHTML(commanderDeck.cardsToAdd, "Add the following cards to have correct types amount");
   }
 
   /**
@@ -74,8 +81,7 @@ export default class HTMLService {
    * @returns {string}
    */
   static getCardsToRemove(commanderDeck) {
-    const suggestion = commanderDeck.getCardsToRemove();
-    return this._buildSuggestionHTML(suggestion, "Remove the following cards to have correct types amount");
+    return this._buildSuggestionHTML(commanderDeck.cardsToRemove, "Remove the following cards to have correct types amount");
   }
 
   /**
@@ -94,6 +100,7 @@ export default class HTMLService {
       if (!suggestion.hasOwnProperty(key)) continue;
       const cards = suggestion[key];
       if (!cards.length) continue;
+
       for (const card of cards) {
         content.push(HTMLService._buildCardHTML(card));
       }
@@ -115,6 +122,7 @@ export default class HTMLService {
 
     content.push(`<section class="deck-list">`);
     content.push(`<div class="deck-list-type">`);
+    content.push(`<p class="deck-list-title deck-list-name font-gray unselectable" data-deck-list-title="COMMANDER"></p>`);
     content.push(`<span class="deck-list-name">1x ${commander.name} *CMDR*<br/></span>`);
     content.push(`</div>`);
 
@@ -123,13 +131,13 @@ export default class HTMLService {
       const cards = suggestion[key];
       if (!cards.length) continue;
 
+      const title = key.replace(/\_/g, " ").toUpperCase();
+
       content.push(`<div class="deck-list-type">`);
+      content.push(`<p class="deck-list-title deck-list-name font-gray unselectable" data-deck-list-title="${title}"></p>`);
 
       for (const card of cards) {
-        const fontColor = card.inventory.amount > 0
-          ? "green"
-          : "red";
-
+        const fontColor = card.inventory.amount > 0 ? "green" : "red";
         content.push(`<span class="deck-list-name font-${fontColor}">1x ${card.name}<br/></span>`);
       }
 
@@ -160,15 +168,12 @@ export default class HTMLService {
    * @private
    */
   static _buildCardHTML(card) {
-    const borderColor = card.inventory.amount > 0
-      ? "green"
-      : "red";
-
+    const borderColor = card.inventory.amount > 0 ? "green" : "red";
     return (`
 <div class="card-container" data-id="${card.id}">
   <div class="card-name">1x ${card.name}</div>
   <div class="card-image">
-    <a href="${card.scryfallUri}" target="_blank">
+    <a href="${card.uri}" target="_blank">
       <img class="card-image-img" src="${card.image}" alt="${card.name}"/>
     </a>
   </div>
@@ -180,6 +185,7 @@ export default class HTMLService {
     <div class="card-data-col">
       <div class="card-data-row font-small">EDHRec <span>${card.edhRec.percent}%</span></div>
       <div class="card-data-row font-small">TappedOut <span>${card.tappedOut.percent}%</span></div>
+      <div class="card-data-row font-small">Deck Rank <span>${card.position}</span></div>
       <div class="card-data-row font-small">Inventory <span>${card.inventory.amount}</span></div>
     </div>
   </div>
@@ -280,11 +286,25 @@ export default class HTMLService {
 .deck-list-name {
   font-size: 11pt;
 }
+.font-gray {
+  color: darkgray;
+}
 .font-green {
   color: limegreen;
 }
 .font-red {
   color: red;
+}
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.deck-list-title::before {
+  content: attr(data-deck-list-title);
 }
 </style>`);
   }

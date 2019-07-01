@@ -26,9 +26,10 @@ program
   .option("-t, --theme [theme]", "using edh-rec theme by number")
   .option("-g, --budget [budget]", "using tapped-out budget by number")
   .option("-b, --hubs [hubs]", "using hubs by comma separated strings")
+  .option("-e, --inventory [inventory]", "using only cards from the inventory")
+  .option("-p, --top [top]", "using only top decks from tapped-out")
 
   .option("-l, --login", "forcing program to use the login form")
-  .option("-e, --inventory", "using only cards from the inventory")
 
   .action(async (url, cmd) => {
     await improve({
@@ -36,8 +37,9 @@ program
       theme: cmd.theme,
       budget: cmd.budget,
       hubs: cmd.hubs,
+      inventory: cmd.inventory,
+      top: cmd.top,
       forceLogin: cmd.login,
-      onlyInventory: cmd.inventory,
     });
   });
 
@@ -72,8 +74,8 @@ program
   .option("-t, --theme [theme]", "using edh-rec theme by number")
   .option("-g, --budget [budget]", "using tapped-out budget by number")
   .option("-b, --hubs [hubs]", "using hubs by comma separated strings")
-
-  .option("-e, --inventory", "using only cards from the inventory")
+  .option("-e, --inventory [inventory]", "using only cards from the inventory")
+  .option("-p, --top [top]", "using only top decks from tapped-out")
 
   .action(async (name, cmd) => {
     await recommend({
@@ -81,7 +83,8 @@ program
       theme: cmd.theme,
       budget: cmd.budget,
       hubs: cmd.hubs,
-      onlyInventory: cmd.inventory,
+      inventory: cmd.inventory,
+      top: cmd.top,
     });
   });
 

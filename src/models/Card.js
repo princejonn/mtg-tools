@@ -8,15 +8,11 @@ export default class Card {
 
     this.id = data.id;
     this.name = data.name;
-    this.typeLine = data.typeLine;
-    this.image = data.image;
     this.colors = data.colors;
     this.manaCost = data.manaCost;
-    this.uri = data.uri;
-    this.scryfallUri = data.scryfallUri;
+    this.uri = data.scryfallUri;
 
     this.image = null;
-
     if (data.imageUris) {
       this.image = data.imageUris.normal;
     } else if (data.cardFaces && data.cardFaces.length) {
@@ -24,23 +20,21 @@ export default class Card {
     }
 
     this.isCommander = false;
-
     this.edhRec = {
       amount: 0,
       percent: 0,
       synergy: 0,
     };
-
     this.tappedOut = {
       amount: 0,
       percent: 0,
     };
 
     this.inventory = { amount: 0 };
+    this.position = 0;
 
     this.type = null;
-
-    this._setType();
+    this._setType(data.typeLine);
   }
 
   /**
@@ -78,18 +72,36 @@ export default class Card {
   }
 
   /**
-   * @param {number} addedDecks
+   * @param {{position: number}} data
    */
-  calculatePercent(addedDecks) {
-    this.tappedOut.percent = Math.floor((this.tappedOut.amount / addedDecks) * 1000) / 10;
-    this.percent = Math.floor(((this.tappedOut.percent + this.edhRec.percent) / 200) * 1000) / 10;
+  setPosition(data) {
+    if (!data) return;
+    if (this.position !== 0 && this.position < data.position) return;
+    this.position = data.position;
   }
 
   /**
+   * @param {number} addedDecks
+   */
+  calculatePercent(addedDecks) {
+    const weight = parseFloat(`1.${(100 - this.position)}`);
+    const weightedTOAmount = this.tappedOut.amount * (weight * weight);
+    let weightedTOPercent = this._percentWithOneDecimal(weightedTOAmount / addedDecks);
+
+    if (weightedTOPercent > 100) {
+      weightedTOPercent = 100;
+    }
+
+    this.tappedOut.percent = this._percentWithOneDecimal(this.tappedOut.amount / addedDecks);
+    this.percent = this._percentWithOneDecimal((weightedTOPercent + this.edhRec.percent + this.edhRec.percent) / 300);
+  }
+
+  /**
+   * @param {string} typeLine
    * @private
    */
-  _setType() {
-    let type = this.typeLine
+  _setType(typeLine) {
+    let type = typeLine
       .toLowerCase()
       .replace(/hero/g, "")
       .replace(/token/g, "")
@@ -118,5 +130,14 @@ export default class Card {
     }
 
     this.type = type;
+  }
+
+  /**
+   * @param {number} calculation
+   * @returns {number}
+   * @private
+   */
+  _percentWithOneDecimal(calculation) {
+    return Math.floor(calculation * 1000) / 10;
   }
 }

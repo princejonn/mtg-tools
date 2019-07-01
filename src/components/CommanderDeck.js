@@ -2,6 +2,7 @@ import cloneDeep from "lodash/cloneDeep";
 import filter from "lodash/filter";
 import find from "lodash/find";
 import includes from "lodash/includes";
+import isUndefined from "lodash/isUndefined";
 import arraySort, { SortBy } from "utils/ArraySort";
 import InventoryService from "services/InventoryService";
 import ScryfallCacheService from "services/ScryfallService";
@@ -9,20 +10,25 @@ import ScryfallCacheService from "services/ScryfallService";
 export default class CommanderDeck {
   /**
    * @param {object} [options]
-   * @param {boolean} [options.onlyInventory]
+   * @param {ProgramInventoryChoice} [options.inventoryChoice]
    */
   constructor(options = {}) {
-    this.cards = [];
-    this.types = {};
-    this.tappedOut = {
-      decks: [],
+    this._cards = [];
+    this._types = {};
+    this._tappedOut = {
       added: 0,
       types: {},
     };
-    this.averageTypes = {};
-    this.typeSuggestion = {};
-    this.isCalculated = false;
-    this.onlyInventory = options.onlyInventory || false;
+    this._averageTypes = {};
+    this._typeSuggestion = {};
+    this._isCalculated = false;
+    this._onlyInventory = options.inventoryChoice.value || false;
+
+    this.mostSuggestedCards = null;
+    this.leastPopularCardsInDeck = null;
+    this.typedRecommendation = null;
+    this.cardsToAdd = null;
+    this.cardsToRemove = null;
   }
 
   /**
@@ -33,13 +39,13 @@ export default class CommanderDeck {
 
     for (const data of cards) {
       const card = await ScryfallCacheService.getCard(data.id);
-      const existingCard = find(this.cards, { id: card.id });
+      const existingCard = find(this._cards, { id: card.id });
 
       if (existingCard) {
         throw new Error("trying to add more of the same card in a commander deck");
       }
 
-      this._sumCardTypes(this.types, card, data.tappedOut);
+      this._sumCardTypes(this._types, card, data.tappedOut);
 
       card.isCommander = true;
       card.setEDHRec(data.edhRec);
@@ -53,40 +59,26 @@ export default class CommanderDeck {
    * @returns {Promise<void>}
    */
   async addTappedOutDeck(deck) {
-    const { url, cards } = deck;
-    const array = [];
-    let similarity = 0;
+    const { cards, position } = deck;
 
     for (const data of cards) {
       const card = await ScryfallCacheService.getCard(data.id);
-      const existingCard = find(this.cards, { id: card.id });
+      const existingCard = find(this._cards, { id: card.id });
 
-      array.push({
-        id: card.id,
-        typeLine: card.typeLine,
-        amount: data.tappedOut.amount,
-      });
-
-      this._sumCardTypes(this.tappedOut.types, card, data.tappedOut);
+      this._sumCardTypes(this._tappedOut.types, card, data.tappedOut);
 
       if (existingCard) {
         existingCard.addTappedOut(data.tappedOut);
-        similarity += 1;
+        existingCard.setPosition({ position });
         continue;
       }
 
       card.addTappedOut(data.tappedOut);
+      card.setPosition({ position });
       await this._addCard(card);
     }
 
-    similarity = Math.floor((similarity / (this.cards.length + cards.length)) * 1000) / 10;
-
-    this.tappedOut.added += 1;
-    this.tappedOut.decks.push({
-      url,
-      similarity,
-      cards: array,
-    });
+    this._tappedOut.added += 1;
   }
 
   /**
@@ -98,7 +90,7 @@ export default class CommanderDeck {
 
     for (const data of cards) {
       const card = await ScryfallCacheService.getCard(data.id);
-      const existingCard = find(this.cards, { id: card.id });
+      const existingCard = find(this._cards, { id: card.id });
 
       if (existingCard) {
         existingCard.setEDHRec(data.edhRec);
@@ -110,41 +102,62 @@ export default class CommanderDeck {
     }
   }
 
-  /**
-   * @returns {Array<Card>}
-   */
-  getMostSuggestedCards() {
-    this._calculate();
+  calculate() {
+    if (this._isCalculated) return;
 
-    const cards = this._filterCards(false);
-
-    return arraySort(cards, "percent", SortBy.DESCENDING);
-  }
-
-  /**
-   * @returns {Array<Card>}
-   */
-  getLeastPopularCardsInDeck() {
-    this._calculate();
-
-    const cards = this._filterCards(true);
-
-    return arraySort(cards, "percent", SortBy.ASCENDING);
-  }
-
-  /**
-   * @returns {object}
-   */
-  getTypedRecommendation() {
-    this._calculate();
-
-    let { cards } = this;
-    if (this.onlyInventory) {
-      cards = filter(cards, card => { return card.inventory.amount > 0; });
+    for (const card of this._cards) {
+      card.calculatePercent(this._tappedOut.added);
     }
 
+    const types = {};
+
+    for (const key in this._tappedOut.types) {
+      if (!this._tappedOut.types.hasOwnProperty(key)) continue;
+      types[key] = Math.floor(this._tappedOut.types[key] / this._tappedOut.added);
+    }
+
+    const add = {};
+    const remove = {};
+
+    for (const key in types) {
+      if (!types.hasOwnProperty(key)) continue;
+      if (!this._types[key]) {
+        this._types[key] = 0;
+      }
+      const diff = types[key] - this._types[key];
+      if (diff > 0) {
+        add[key] = diff;
+      } else if (diff < 0) {
+        remove[key] = -diff;
+      }
+    }
+
+    this._typeSuggestion = { add, remove };
+    this._averageTypes = types;
+
+    this._setMostSuggestedCards();
+    this._setLeastPopularCardsInDeck();
+    this._setTypedRecommendation();
+    this._setCardsToAdd();
+    this._setCardsToRemove();
+
+    this._isCalculated = true;
+  }
+
+  _setMostSuggestedCards() {
+    const cards = this._filterCards(false);
+    this.mostSuggestedCards = arraySort(cards, "percent", SortBy.DESCENDING);
+  }
+
+  _setLeastPopularCardsInDeck() {
+    const cards = this._filterCards(true);
+    this.leastPopularCardsInDeck = arraySort(cards, "percent", SortBy.ASCENDING);
+  }
+
+  _setTypedRecommendation() {
+    const cards = this._filterCards();
     const sorted = arraySort(cards, "percent", SortBy.DESCENDING);
-    const averageTypes = cloneDeep(this.averageTypes);
+    const averageTypes = cloneDeep(this._averageTypes);
     const typesCards = {};
 
     for (const typeKey in averageTypes) {
@@ -168,21 +181,15 @@ export default class CommanderDeck {
       }
     }
 
-    return typesCards;
+    this.typedRecommendation = typesCards;
   }
 
-  /**
-   * @returns {object}
-   */
-  getCardsToAdd() {
-    return this._getCardsTo("add", false, SortBy.DESCENDING);
+  _setCardsToAdd() {
+    this.cardsToAdd = this._getCardsTo("add", false, SortBy.DESCENDING);
   }
 
-  /**
-   * @returns {object}
-   */
-  getCardsToRemove() {
-    return this._getCardsTo("remove", true, SortBy.ASCENDING);
+  _setCardsToRemove() {
+    this.cardsToRemove = this._getCardsTo("remove", true, SortBy.ASCENDING);
   }
 
   /**
@@ -194,7 +201,7 @@ export default class CommanderDeck {
     if (includes(card.type, "snow")) return;
     const amount = await InventoryService.getAmount(card.id);
     card.setInventory({ amount });
-    this.cards.push(card);
+    this._cards.push(card);
   }
 
   /**
@@ -204,9 +211,7 @@ export default class CommanderDeck {
    * @private
    */
   _getCardsTo(addRemove, inDeck, sortBy) {
-    this._calculate();
-
-    const typeSuggestion = cloneDeep(this.typeSuggestion);
+    const typeSuggestion = cloneDeep(this._typeSuggestion);
     const suggestion = typeSuggestion[addRemove];
     const filtered = this._filterCards(inDeck);
     const sorted = arraySort(filtered, "percent", sortBy);
@@ -238,52 +243,18 @@ export default class CommanderDeck {
   }
 
   /**
-   * @private
-   */
-  _calculate() {
-    if (this.isCalculated) return;
-
-    for (const card of this.cards) {
-      card.calculatePercent(this.tappedOut.added);
-    }
-
-    const types = {};
-
-    for (const key in this.tappedOut.types) {
-      if (!this.tappedOut.types.hasOwnProperty(key)) continue;
-      types[key] = Math.floor(this.tappedOut.types[key] / this.tappedOut.added);
-    }
-
-    const add = {};
-    const remove = {};
-
-    for (const key in types) {
-      if (!types.hasOwnProperty(key)) continue;
-      if (!this.types[key]) {
-        this.types[key] = 0;
-      }
-      const diff = types[key] - this.types[key];
-      if (diff > 0) {
-        add[key] = diff;
-      } else if (diff < 0) {
-        remove[key] = -diff;
-      }
-    }
-
-    this.typeSuggestion = { add, remove };
-    this.averageTypes = types;
-    this.isCalculated = true;
-  }
-
-  /**
-   * @param {boolean} inDeck
+   * @param {boolean} [inDeck]
    * @returns {Array}
    * @private
    */
   _filterCards(inDeck) {
-    let cards = filter(this.cards, { isCommander: inDeck });
+    let cards = this._cards;
 
-    if (this.onlyInventory) {
+    if (!isUndefined(inDeck)) {
+      cards = filter(cards, { isCommander: inDeck });
+    }
+
+    if (this._onlyInventory) {
       cards = filter(cards, card => { return card.inventory.amount > 0; });
     }
 

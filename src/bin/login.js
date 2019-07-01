@@ -1,5 +1,5 @@
-import AccountService from "services/AccountService";
+import InquiryService from "services/InquiryService";
 
 export default async () => {
-  await AccountService.login();
+  await InquiryService.loginAccount(true);
 };

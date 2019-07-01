@@ -75,15 +75,17 @@ class TappedOutService extends BasePage {
   /**
    * @param {Commander} commander
    * @param {TappedOutBudget} budget
+   * @param {TappedOutTopDeck} top
    * @param {string} hubs
    * @returns {Promise<TappedOutLinkList>}
    */
-  async getSimilarLinks(commander, budget, hubs) {
+  async getSimilarLinks({ commander, budget, top, hubs }) {
     const timeout = new CacheTimeout({ days: 14 });
 
     const query = {
       commander: commander.queryString,
       price: budget.price,
+      top: top.num,
     };
 
     if (hubs) {
@@ -102,7 +104,7 @@ class TappedOutService extends BasePage {
     }
 
     console.log("searching for links on tapped out:", commander.queryString);
-    const data = await this._buildSimilarLinks(commander, budget, hubs);
+    const data = await this._buildSimilarLinks({ commander, budget, top, hubs });
     await this._links.insert(data);
 
     return new TappedOutLinkList(data);
@@ -125,6 +127,7 @@ class TappedOutService extends BasePage {
 
     try {
       const data = await this._buildDeck(url);
+      if (data.cards.length > 100) return null;
       await this._decks.insert(data);
 
       return new TappedOutDeck(data);
@@ -193,11 +196,12 @@ class TappedOutService extends BasePage {
   /**
    * @param {Commander} commander
    * @param {TappedOutBudget} budget
+   * @param {TappedOutTopDeck} top
    * @param {string} hubs
    * @returns {Promise<{commander: string, price: number, links: Array<string>}>}
    * @private
    */
-  async _buildSimilarLinks(commander, budget, hubs) {
+  async _buildSimilarLinks({ commander, budget, top, hubs }) {
     await super._init();
 
     const timerMessage = new TimerMessage(`finding similar links with ${budget.text}`);
@@ -205,7 +209,9 @@ class TappedOutService extends BasePage {
     const maxPages = 5;
     const baseUrl = `${this._searchUrl}?q=&format=edh&general=${commander.queryString}&o=-rating&submit=Filter+results`;
     const links = [];
+
     let page = 1;
+    let position = 1;
 
     while (page <= maxPages) {
       let searchUrl = `${baseUrl}&p=${page}&page=${page}`;
@@ -214,6 +220,10 @@ class TappedOutService extends BasePage {
         searchUrl += `&price_0=&price_1=${budget.price}`;
       } else {
         searchUrl += "&price_0=&price_1=";
+      }
+
+      if (top.value) {
+        searchUrl += "&is_top=on";
       }
 
       if (hubs) {
@@ -233,8 +243,9 @@ class TappedOutService extends BasePage {
 
         for (const element of elements) {
           const href = await this._manager.getElementAttribute(element, "href");
-          const link = `https://tappedout.net${href}`;
-          links.push(link);
+          const url = `https://tappedout.net${href}`;
+          links.push({ position, url });
+          position += 1;
         }
       } catch (err) {
         console.log("unable to find links on page:", page);
@@ -245,7 +256,7 @@ class TappedOutService extends BasePage {
 
     timerMessage.done();
 
-    return { commander: commander.queryString, price: budget.num, hubs, links };
+    return { commander: commander.queryString, price: budget.num, top: top.num, hubs, links };
   }
 
   /**

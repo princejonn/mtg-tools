@@ -3,9 +3,13 @@ import inquirerCheckboxPlusPrompt from "inquirer-checkbox-plus-prompt";
 import find from "lodash/find";
 import isString from "lodash/isString";
 import * as fuzzy from "fuzzy";
-import BudgetList from "enums/BudgetList";
+import BudgetChoice from "enums/BudgetChoice";
+import InventoryChoice from "enums/InventoryChoice";
+import TopDeckChoice from "enums/TopDeckChoice";
 import EDHRecTheme from "models/EDHRecTheme";
+import ProgramInventoryChoice from "models/ProgramInventoryChoice";
 import TappedOutBudget from "models/TappedOutBudget";
+import TappedOutTopDeck from "models/TappedOutTopDeck";
 import AccountService from "services/AccountService";
 import EDHRecService from "services/EDHRecService";
 import TappedOutService from "services/TappedOutService";
@@ -90,13 +94,13 @@ export default class InquiryService {
    */
   static async selectBudget(programOption) {
     if (isString(programOption)) {
-      const exists = find(BudgetList, { num: parseInt(programOption, 10) });
+      const exists = find(BudgetChoice, { num: parseInt(programOption, 10) });
       if (exists) {
         return new TappedOutBudget(exists);
       }
     }
 
-    const choices = InquiryService._listChoices(BudgetList);
+    const choices = InquiryService._listChoices(BudgetChoice);
 
     const { text } = await inquirer.prompt([ {
       type: "list",
@@ -105,8 +109,58 @@ export default class InquiryService {
       choices,
     } ]);
 
-    const data = find(BudgetList, { text });
+    const data = find(BudgetChoice, { text });
     return new TappedOutBudget(data);
+  }
+
+  /**
+   * @param {string} programOption
+   * @returns {Promise<ProgramInventoryChoice>}
+   */
+  static async selectInventory(programOption) {
+    if (isString(programOption)) {
+      const exists = find(InventoryChoice, { num: parseInt(programOption, 10) });
+      if (exists) {
+        return new ProgramInventoryChoice(exists);
+      }
+    }
+
+    const choices = InquiryService._listChoices(InventoryChoice);
+
+    const { text } = await inquirer.prompt([ {
+      type: "list",
+      name: "text",
+      message: "Do you want to use cards only in your inventory?",
+      choices,
+    } ]);
+
+    const data = find(InventoryChoice, { text });
+    return new ProgramInventoryChoice(data);
+  }
+
+  /**
+   * @param {string} programOption
+   * @returns {Promise<TappedOutTopDeck>}
+   */
+  static async selectTopDeck(programOption) {
+    if (isString(programOption)) {
+      const exists = find(TopDeckChoice, { num: parseInt(programOption, 10) });
+      if (exists) {
+        return new TappedOutTopDeck(exists);
+      }
+    }
+
+    const choices = InquiryService._listChoices(TopDeckChoice);
+
+    const { text } = await inquirer.prompt([ {
+      type: "list",
+      name: "text",
+      message: "Do you want to use only top decks for recommendation?",
+      choices,
+    } ]);
+
+    const data = find(TopDeckChoice, { text });
+    return new TappedOutTopDeck(data);
   }
 
   /**
