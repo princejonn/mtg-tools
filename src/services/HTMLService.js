@@ -1,5 +1,7 @@
 /* eslint quotes: 0 */
 
+import latinise from "utils/Latinise";
+
 export default class HTMLService {
   /**
    * @param {Commander} commander
@@ -138,7 +140,7 @@ export default class HTMLService {
 
       for (const card of cards) {
         const fontColor = card.inventory.amount > 0 ? "green" : "red";
-        content.push(`<span class="deck-list-name font-${fontColor}">1x ${card.name}<br/></span>`);
+        content.push(`<span class="deck-list-name font-${fontColor}">1x ${latinise(card.name)}<br/></span>`);
       }
 
       content.push(`</div>`);
@@ -171,10 +173,10 @@ export default class HTMLService {
     const borderColor = card.inventory.amount > 0 ? "green" : "red";
     return (`
 <div class="card-container" data-id="${card.id}">
-  <div class="card-name">1x ${card.name}</div>
+  <div class="card-name">1x ${latinise(card.name)}</div>
   <div class="card-image">
     <a href="${card.uri}" target="_blank">
-      <img class="card-image-img" src="${card.image}" alt="${card.name}"/>
+      <img class="card-image-img" src="${card.image}" alt="${latinise(card.name)}"/>
     </a>
   </div>
   <div class="card-border card-border-${borderColor}"></div>
