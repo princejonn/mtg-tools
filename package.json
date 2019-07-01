@@ -1,6 +1,6 @@
 {
   "name": "mtg-tools",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "lib/index",
   "author": "jonn@jonn.nu",
   "description": "tools to help build MTG decks",
