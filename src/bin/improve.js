@@ -15,14 +15,17 @@ import TimerMessage from "utils/TimerMessage";
  * @param {string} hubs
  * @param {string} inventory
  * @param {string} top
+ * @param {string} cards
  * @param {boolean} forceLogin
  * @returns {Promise<void>}
  */
-export default async ({ url, theme, budget, hubs, inventory, top, forceLogin }) => {
+export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLogin }) => {
   try {
     if (!includes(url, "http")) {
       throw new Error("url undefined");
     }
+
+    const tm1 = new TimerMessage("improving deck");
 
     await ScryfallService.load();
     await InventoryService.load();
@@ -37,14 +40,15 @@ export default async ({ url, theme, budget, hubs, inventory, top, forceLogin }) 
     const inventoryChoice = await InquiryService.selectInventory(inventory);
     const topChoice = await InquiryService.selectTopDeck(top);
     const hubsChoice = await InquiryService.selectHubs(hubs);
+    const cardsChoice = await InquiryService.selectCards(cards);
 
-    const tm1 = new TimerMessage("improving deck");
     const recommendation = await EDHRecService.getRecommendation(themeChoice);
     const linkList = await TappedOutService.getSimilarLinks({
       commander,
       budget: budgetChoice,
       top: topChoice,
       hubs: hubsChoice,
+      cards: cardsChoice,
     });
 
     for (const link of linkList.links) {
@@ -56,8 +60,6 @@ export default async ({ url, theme, budget, hubs, inventory, top, forceLogin }) 
     }
 
     const cmdDeck = await TappedOutService.getCommanderDeck(commander, account);
-
-    tm1.done();
 
     const tm2 = new TimerMessage("finalizing deck");
     const commanderDeck = new CommanderDeck({ inventoryChoice });
@@ -71,6 +73,7 @@ export default async ({ url, theme, budget, hubs, inventory, top, forceLogin }) 
     commanderDeck.calculate();
 
     tm2.done();
+    tm1.done();
 
     await ReporterService.buildImproveReport({
       commander,
@@ -80,6 +83,7 @@ export default async ({ url, theme, budget, hubs, inventory, top, forceLogin }) 
       inventoryChoice,
       topChoice,
       hubsChoice,
+      cardsChoice,
     });
   } catch (err) {
     console.error(err);

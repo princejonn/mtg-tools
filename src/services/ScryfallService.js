@@ -14,6 +14,7 @@ import DateFns from "utils/DateFns";
 import latinise from "utils/Latinise";
 import NeDB, { Collection } from "utils/NeDB";
 import RateLimit from "utils/RateLimit";
+import searchString from "utils/SearchString";
 import TimerMessage from "utils/TimerMessage";
 
 class ScryfallService {
@@ -24,6 +25,7 @@ class ScryfallService {
     this._loaded = false;
     this._file = null;
     this._cache = [];
+    this._names = [];
   }
 
   /**
@@ -34,6 +36,13 @@ class ScryfallService {
     await this.load();
     const data = find(this._cache, { id });
     return new Card(humps(data));
+  }
+
+  /**
+   * @returns {Array<string>}
+   */
+  getNames() {
+    return this._names;
   }
 
   /**
@@ -88,6 +97,13 @@ class ScryfallService {
     const timerMessage = new TimerMessage("loading scryfall cache");
 
     this._cache = require(this._file);
+
+    for (const card of this._cache) {
+      const name = searchString(card.name);
+      if (includes(this._names, name)) continue;
+      this._names.push(name);
+    }
+
     this._loaded = true;
 
     timerMessage.done();

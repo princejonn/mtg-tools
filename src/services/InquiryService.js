@@ -12,7 +12,9 @@ import TappedOutBudget from "models/TappedOutBudget";
 import TappedOutTopDeck from "models/TappedOutTopDeck";
 import AccountService from "services/AccountService";
 import EDHRecService from "services/EDHRecService";
+import ScryfallService from "services/ScryfallService";
 import TappedOutService from "services/TappedOutService";
+import searchString from "utils/SearchString";
 
 inquirer.registerPrompt("checkbox-plus", inquirerCheckboxPlusPrompt);
 
@@ -81,6 +83,7 @@ export default class InquiryService {
       type: "list",
       name: "text",
       message: "Do you want to select a theme?",
+      pageSize: 10,
       choices,
     } ]);
 
@@ -106,6 +109,7 @@ export default class InquiryService {
       type: "list",
       name: "text",
       message: "Do you want to select a budget?",
+      pageSize: 10,
       choices,
     } ]);
 
@@ -194,6 +198,48 @@ export default class InquiryService {
     } ]);
 
     return list.join(",");
+  }
+
+  /**
+   * @param {string} programOption
+   * @returns {Promise<string>}
+   */
+  static async selectCards(programOption) {
+    if (isString(programOption)) {
+      return programOption;
+    }
+
+    const hubsList = ScryfallService.getNames();
+
+    const { list } = await inquirer.prompt([ {
+      type: "checkbox-plus",
+      name: "list",
+      message: "Select three (3) cards for Tapped Out filtering if you wish",
+      pageSize: 10,
+      highlight: true,
+      searchable: true,
+      source: (answersSoFar, input) => {
+        input = input || "";
+        return new Promise((resolve) => {
+          const fuzzyResult = fuzzy.filter(input, hubsList);
+          const data = fuzzyResult.map((element) => {
+            return element.original;
+          });
+          resolve(data);
+        });
+      },
+    } ]);
+
+    const output = [];
+
+    for (const name of list) {
+      output.push(searchString(name));
+    }
+
+    const length = output.length <= 3 ? output.length : 3;
+    const sliced = output.slice(0, length);
+
+    return sliced.join(",");
   }
 
   static _listChoices(list) {

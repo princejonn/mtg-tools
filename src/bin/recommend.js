@@ -15,10 +15,13 @@ import TimerMessage from "utils/TimerMessage";
  * @param {string} hubs
  * @param {string} inventory
  * @param {string} top
+ * @param {string} cards
  * @returns {Promise<void>}
  */
-export default async ({ name, theme, budget, hubs, inventory, top }) => {
+export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
   try {
+    const tm1 = new TimerMessage("creating deck recommendation");
+
     await ScryfallService.load();
     await InventoryService.load();
 
@@ -31,14 +34,15 @@ export default async ({ name, theme, budget, hubs, inventory, top }) => {
     const inventoryChoice = await InquiryService.selectInventory(inventory);
     const topChoice = await InquiryService.selectTopDeck(top);
     const hubsChoice = await InquiryService.selectHubs(hubs);
+    const cardsChoice = await InquiryService.selectCards(cards);
 
-    const tm1 = new TimerMessage("improving deck");
     const recommendation = await EDHRecService.getRecommendation(themeChoice);
     const linkList = await TappedOutService.getSimilarLinks({
       commander,
       budget: budgetChoice,
       top: topChoice,
       hubs: hubsChoice,
+      cards: cardsChoice,
     });
 
     for (const link of linkList.links) {
@@ -48,8 +52,6 @@ export default async ({ name, theme, budget, hubs, inventory, top }) => {
       deck.setPosition({ position });
       decks.push(deck);
     }
-
-    tm1.done();
 
     const tm2 = new TimerMessage("finalizing deck");
     const commanderDeck = new CommanderDeck({ inventoryChoice });
@@ -61,6 +63,7 @@ export default async ({ name, theme, budget, hubs, inventory, top }) => {
 
     commanderDeck.calculate();
 
+    tm1.done();
     tm2.done();
 
     await ReporterService.buildRecommendReport({
@@ -71,6 +74,7 @@ export default async ({ name, theme, budget, hubs, inventory, top }) => {
       inventoryChoice,
       topChoice,
       hubsChoice,
+      cardsChoice,
     });
   } catch (err) {
     console.error(err);

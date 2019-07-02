@@ -8,6 +8,7 @@ import inventory from "bin/inventory";
 import login from "bin/login";
 import recommend from "bin/recommend";
 
+
 program
   .command("clear")
   .alias("c")
@@ -16,6 +17,7 @@ program
   .action(async () => {
     await clear();
   });
+
 
 program
   .command("improve")
@@ -28,6 +30,7 @@ program
   .option("-b, --hubs [hubs]", "using hubs by comma separated strings")
   .option("-e, --inventory [inventory]", "using only cards from the inventory")
   .option("-p, --top [top]", "using only top decks from tapped-out")
+  .option("-c, --cards [cards]", "searching tapped-out for decks containing specific cards")
 
   .option("-l, --login", "forcing program to use the login form")
 
@@ -39,9 +42,11 @@ program
       hubs: cmd.hubs,
       inventory: cmd.inventory,
       top: cmd.top,
+      cards: cmd.cards,
       forceLogin: cmd.login,
     });
   });
+
 
 program
   .command("inventory")
@@ -56,6 +61,7 @@ program
     await inventory(file, cmd.name, cmd.amount);
   });
 
+
 program
   .command("login")
   .alias("l")
@@ -64,6 +70,7 @@ program
   .action(async () => {
     await login();
   });
+
 
 program
   .command("recommend")
@@ -76,6 +83,7 @@ program
   .option("-b, --hubs [hubs]", "using hubs by comma separated strings")
   .option("-e, --inventory [inventory]", "using only cards from the inventory")
   .option("-p, --top [top]", "using only top decks from tapped-out")
+  .option("-c, --cards [cards]", "searching tapped-out for decks containing specific cards")
 
   .action(async (name, cmd) => {
     await recommend({
@@ -85,6 +93,7 @@ program
       hubs: cmd.hubs,
       inventory: cmd.inventory,
       top: cmd.top,
+      cards: cmd.cards,
     });
   });
 
@@ -104,6 +113,7 @@ program.on("--help", () => {
   console.log("  $ mtg-tools e /path/to/file.csv -a Quantity");
   console.log("  $ mtg-tools e /path/to/file.csv --amount Quantity");
 });
+
 
 program
   .version(packageJson.version, "-v, --version")

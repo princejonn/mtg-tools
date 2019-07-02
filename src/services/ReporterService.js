@@ -81,7 +81,7 @@ export default class ReporterService {
 
   /**
    * @param {string} program
-   * @param {{budgetChoice: object, themeChoice: object, inventoryChoice: object, topChoice: object, hubsChoice: string}} programOptions
+   * @param {{budgetChoice: object, themeChoice: object, inventoryChoice: object, topChoice: object, hubsChoice: string, cardsChoice: string}} programOptions
    * @returns {string}
    * @private
    */
@@ -95,6 +95,9 @@ export default class ReporterService {
 
     if (programOptions.hubsChoice) quicker += ` -b ${programOptions.hubsChoice}`;
     if (!programOptions.hubsChoice) quicker += " -b \"\"";
+
+    if (programOptions.cardsChoice) quicker += ` -c ${programOptions.cardsChoice}`;
+    if (!programOptions.cardsChoice) quicker += " -c \"\"";
 
     return quicker;
   }

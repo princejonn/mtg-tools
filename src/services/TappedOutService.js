@@ -16,6 +16,7 @@ const Selector = {
   COMMANDER: "ul.boardlist > a",
   COMMANDER_NAME: ".well-jumbotron h1",
   HUB: "#id_hubs option",
+  SEARCH_FILTER_BUTTON: "input[value='Filter results']",
   DECK_LINK: "h3.deck-wide-header a",
   CARD_LIST: "div.well div.board-container",
   MEMBER: "ul.boardlist > li.member",
@@ -77,21 +78,25 @@ class TappedOutService extends BasePage {
    * @param {TappedOutBudget} budget
    * @param {TappedOutTopDeck} top
    * @param {string} hubs
+   * @param {string} cards
    * @returns {Promise<TappedOutLinkList>}
    */
-  async getSimilarLinks({ commander, budget, top, hubs }) {
+  async getSimilarLinks({ commander, budget, top, hubs, cards }) {
     const timeout = new CacheTimeout({ days: 14 });
 
     const query = {
       commander: commander.queryString,
       price: budget.price,
       top: top.num,
+      hubs: "",
+      cards: "",
     };
 
     if (hubs) {
       query.hubs = hubs;
-    } else {
-      query.hubs = "";
+    }
+    if (cards) {
+      query.cards = cards;
     }
 
     const cached = await this._links.find(query);
@@ -104,7 +109,7 @@ class TappedOutService extends BasePage {
     }
 
     console.log("searching for links on tapped out:", commander.queryString);
-    const data = await this._buildSimilarLinks({ commander, budget, top, hubs });
+    const data = await this._buildSimilarLinks({ commander, budget, top, hubs, cards });
     await this._links.insert(data);
 
     return new TappedOutLinkList(data);
@@ -198,10 +203,11 @@ class TappedOutService extends BasePage {
    * @param {TappedOutBudget} budget
    * @param {TappedOutTopDeck} top
    * @param {string} hubs
+   * @param {string} cards
    * @returns {Promise<{commander: string, price: number, links: Array<string>}>}
    * @private
    */
-  async _buildSimilarLinks({ commander, budget, top, hubs }) {
+  async _buildSimilarLinks({ commander, budget, top, hubs, cards }) {
     await super._init();
 
     const timerMessage = new TimerMessage(`finding similar links with ${budget.text}`);
@@ -214,7 +220,7 @@ class TappedOutService extends BasePage {
     let position = 1;
 
     while (page <= maxPages) {
-      let searchUrl = `${baseUrl}&p=${page}&page=${page}`;
+      let searchUrl = `${baseUrl}`;
 
       if (budget.price > 0) {
         searchUrl += `&price_0=&price_1=${budget.price}`;
@@ -230,14 +236,23 @@ class TappedOutService extends BasePage {
         searchUrl += `&hubs=${hubs}`;
       }
 
+      if (cards) {
+        searchUrl += `&cards=${cards}`;
+      }
+
+      searchUrl += `&p=${page}&page=${page}`;
+
       console.log("searching:", searchUrl);
 
       try {
         await RateLimit.tappedOut();
         await this._manager.goto({
           url: searchUrl,
-          waitForSelector: Selector.DECK_LINK,
+          waitForSelector: Selector.SEARCH_FILTER_BUTTON,
         });
+
+        await this._manager.page.click(Selector.SEARCH_FILTER_BUTTON);
+        await this._manager.page.waitForSelector(Selector.DECK_LINK, { visible: true });
 
         const elements = await this._manager.page.$$(Selector.DECK_LINK);
 

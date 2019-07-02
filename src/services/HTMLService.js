@@ -28,10 +28,8 @@ export default class HTMLService {
    */
   static getSuggestedCards(commanderDeck, maximum) {
     const cards = commanderDeck.mostSuggestedCards;
-    if (maximum > cards.length) {
-      maximum = cards.length;
-    }
-    const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
+    const length = cards.length <= maximum ? cards.length : maximum;
+    const array = HTMLService._buildCardsHTML(cards.slice(0, length));
 
     return (`<header class="card-list-header font-large">Consider adding these cards</header>
     <section class="card-list">${array.join("")}</section>`);
@@ -44,10 +42,8 @@ export default class HTMLService {
    */
   static getLeastPopularCards(commanderDeck, maximum) {
     const cards = commanderDeck.leastPopularCardsInDeck;
-    if (maximum > cards.length) {
-      maximum = cards.length;
-    }
-    const array = HTMLService._buildCardsHTML(cards.slice(0, maximum));
+    const length = cards.length <= maximum ? cards.length : maximum;
+    const array = HTMLService._buildCardsHTML(cards.slice(0, length));
 
     return (`<header class="card-list-header font-large">Consider removing these cards</header>
     <section class="card-list">${array.join("")}</section>`);
