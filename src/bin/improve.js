@@ -34,13 +34,14 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
 
     const account = await InquiryService.loginAccount(forceLogin);
     const commander = await TappedOutService.getCommander(url, account);
-
     const themeChoice = await InquiryService.selectTheme(commander, theme);
     const budgetChoice = await InquiryService.selectBudget(budget);
     const inventoryChoice = await InquiryService.selectInventory(inventory);
     const topChoice = await InquiryService.selectTopDeck(top);
     const hubsChoice = await InquiryService.selectHubs(hubs);
     const cardsChoice = await InquiryService.selectCards(cards);
+
+    const cmdDeck = await TappedOutService.getCommanderDeck(commander, account);
 
     const recommendation = await EDHRecService.getRecommendation(themeChoice);
     const linkList = await TappedOutService.getSimilarLinks({
@@ -58,8 +59,6 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
       deck.setPosition({ position });
       decks.push(deck);
     }
-
-    const cmdDeck = await TappedOutService.getCommanderDeck(commander, account);
 
     const tm2 = new TimerMessage("finalizing deck");
     const commanderDeck = new CommanderDeck({ inventoryChoice });

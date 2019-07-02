@@ -60,6 +60,8 @@ export default class InquiryService {
     if (!account) {
       throw new Error("account service could not properly save your account");
     }
+
+    return account;
   }
 
   /**

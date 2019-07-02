@@ -24,7 +24,8 @@
     "prepublishOnly": "npm run clean && npm run lint && npm run build",
     "publish:patch": "npm version patch && npm publish",
     "publish:minor": "npm version minor && npm publish",
-    "publish:major": "npm version major && npm publish"
+    "publish:major": "npm version major && npm publish",
+    "test": "npm run build && npm i -g ./"
   },
   "dependencies": {
     "commander": "^2.20.0",

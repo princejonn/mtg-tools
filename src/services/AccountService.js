@@ -21,6 +21,10 @@ class AccountService {
   async get() {
     await this.load();
 
+    if (!this._cache || !this._cache.username) {
+      return null;
+    }
+
     const username = await this._decrypt(this._cache.username);
     const password = await this._decrypt(this._cache.password);
 
@@ -64,12 +68,9 @@ class AccountService {
     if (this._loaded) return;
 
     const timerMessage = new TimerMessage("loading account from db");
-
     const exists = await this._db.find({ name: this._name });
 
-    if (!exists) {
-      throw new Error("found no account in db");
-    }
+    if (!exists) return;
 
     this._cache = exists;
     this._loaded = true;

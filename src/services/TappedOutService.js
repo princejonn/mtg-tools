@@ -258,7 +258,7 @@ class TappedOutService extends BasePage {
 
         for (const element of elements) {
           const href = await this._manager.getElementAttribute(element, "href");
-          const url = `https://tappedout.net${href}`;
+          const url = `https://tappedout.net${href}?cat=type&sort=name`;
           links.push({ position, url });
           position += 1;
         }
@@ -271,7 +271,7 @@ class TappedOutService extends BasePage {
 
     timerMessage.done();
 
-    return { commander: commander.queryString, price: budget.num, top: top.num, hubs, links };
+    return { commander: commander.queryString, price: budget.num, top: top.num, hubs, cards, links };
   }
 
   /**
