@@ -54,11 +54,11 @@ program
   .description("loading your inventory into the database")
   .arguments("<file>")
 
-  .option("-n, --name [name]", "title for card name in csv")
-  .option("-a, --amount [amount]", "title for amount in csv")
+  .option("-n, --name-key [nameKey]", "title for card name in csv")
+  .option("-a, --amount-key [amountKey]", "title for amount in csv")
 
   .action(async (file, cmd) => {
-    await inventory(file, cmd.name, cmd.amount);
+    await inventory(file, cmd.nameKey, cmd.amountKey);
   });
 
 

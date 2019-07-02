@@ -38,7 +38,7 @@ class TappedOutService extends BasePage {
 
   /**
    * @param {string} url
-   * @param {TappedOutAccount} account
+   * @param {TappedOutAccount} [account]
    * @returns {Promise<Commander>}
    */
   async getCommander(url, account) {
@@ -61,13 +61,17 @@ class TappedOutService extends BasePage {
 
   /**
    * @param {Commander} commander
-   * @param {TappedOutAccount} account
+   * @param {TappedOutAccount} [account]
    * @returns {Promise<TappedOutDeck>}
    */
   async getCommanderDeck(commander, account) {
     const timerMessage = new TimerMessage("finding commander deck");
     await super._init();
-    await this._login(account);
+
+    if (account) {
+      await this._login(account);
+    }
+
     const data = await this._buildDeck(commander.url);
     timerMessage.done();
     return new TappedOutDeck(data);
@@ -168,13 +172,16 @@ class TappedOutService extends BasePage {
 
   /**
    * @param {string} url
-   * @param {TappedOutAccount} account
+   * @param {TappedOutAccount} [account]
    * @returns {Promise<{name: string, url: string}>}
    * @private
    */
   async _buildCommander(url, account) {
     await super._init();
-    await this._login(account);
+
+    if (account) {
+      await this._login(account);
+    }
 
     const timerMessage = new TimerMessage("finding commander");
 

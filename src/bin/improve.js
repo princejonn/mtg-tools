@@ -21,8 +21,13 @@ import TimerMessage from "utils/TimerMessage";
  */
 export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLogin }) => {
   try {
-    if (!includes(url, "http")) {
-      throw new Error("url undefined");
+    if (!includes(url, "tappedout.net/mtg-decks/")) {
+      throw new Error("url incorrect. only tappedout decks currently allowed");
+    }
+
+    let account = null;
+    if (!includes(url, "share=")) {
+      account = await InquiryService.loginAccount(forceLogin);
     }
 
     const tm1 = new TimerMessage("improving deck");
@@ -31,9 +36,8 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
     await InventoryService.load();
 
     const decks = [];
-
-    const account = await InquiryService.loginAccount(forceLogin);
     const commander = await TappedOutService.getCommander(url, account);
+
     const themeChoice = await InquiryService.selectTheme(commander, theme);
     const budgetChoice = await InquiryService.selectBudget(budget);
     const inventoryChoice = await InquiryService.selectInventory(inventory);

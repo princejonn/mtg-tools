@@ -17,8 +17,8 @@ export default class ReporterService {
     console.log(`\nto run this again - paste this:\n\n--> ${quicker}\n`);
 
     content.push(HTMLService.getQuickCommand(quicker));
-    content.push(HTMLService.getSuggestedCards(commanderDeck, 16));
-    content.push(HTMLService.getLeastPopularCards(commanderDeck, 12));
+    content.push(HTMLService.getSuggestedCards(commanderDeck, 32));
+    content.push(HTMLService.getLeastPopularCards(commanderDeck, 24));
     content.push(HTMLService.getCardsToAdd(commanderDeck));
     content.push(HTMLService.getCardsToRemove(commanderDeck));
 

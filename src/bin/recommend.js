@@ -26,7 +26,6 @@ export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
     await InventoryService.load();
 
     const decks = [];
-
     const commander = new Commander({ name });
 
     const themeChoice = await InquiryService.selectTheme(commander, theme);
