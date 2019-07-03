@@ -1,12 +1,15 @@
 import includes from "lodash/includes";
+import isObject from "lodash/isObject";
+import isString from "lodash/isString";
 import CommanderDeck from "components/CommanderDeck";
 import EDHRecService from "services/EDHRecService";
 import InquiryService from "services/InquiryService";
 import InventoryService from "services/InventoryService";
 import ReporterService from "services/ReporterService";
 import ScryfallService from "services/ScryfallService";
+import ShareLinkService from "services/ShareLinkService";
 import TappedOutService from "services/TappedOutService";
-import TimerMessage from "utils/TimerMessage";
+import Spinners from "utils/Spinners";
 
 /**
  * @param {string} url
@@ -20,23 +23,40 @@ import TimerMessage from "utils/TimerMessage";
  * @returns {Promise<void>}
  */
 export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLogin }) => {
+  const decks = [];
+  const options = {
+    loginRequired: true,
+    account: null,
+  };
+
   try {
-    if (!includes(url, "tappedout.net/mtg-decks/")) {
+    if (!includes(url, "https://tappedout.net/mtg-decks/")) {
       throw new Error("url incorrect. only tappedout decks currently allowed");
     }
 
-    let account = null;
-    if (!includes(url, "share=")) {
-      account = await InquiryService.loginAccount(forceLogin);
+    Spinners.start("preparing");
+    const shareLink = await ShareLinkService.getOrSet(url);
+    if (isObject(shareLink) && isString(shareLink.link)) {
+      options.loginRequired = false;
+      url = shareLink.link;
+    }
+    Spinners.succeed();
+
+    if (options.loginRequired) {
+      options.account = await InquiryService.loginAccount(forceLogin);
     }
 
-    const tm1 = new TimerMessage("improving deck");
-
+    Spinners.start("loading cache");
     await ScryfallService.load();
-    await InventoryService.load();
+    Spinners.succeed();
 
-    const decks = [];
-    const commander = await TappedOutService.getCommander(url, account);
+    Spinners.start("loading inventory");
+    await InventoryService.load();
+    Spinners.succeed();
+
+    Spinners.start("finding commander");
+    const commander = await TappedOutService.getCommander(url, options.account);
+    Spinners.succeed();
 
     const themeChoice = await InquiryService.selectTheme(commander, theme);
     const budgetChoice = await InquiryService.selectBudget(budget);
@@ -45,8 +65,11 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
     const hubsChoice = await InquiryService.selectHubs(hubs);
     const cardsChoice = await InquiryService.selectCards(cards);
 
-    const cmdDeck = await TappedOutService.getCommanderDeck(commander, account);
+    Spinners.start("finding commander deck");
+    const cmdDeck = await TappedOutService.getCommanderDeck(url, options.account);
+    Spinners.succeed();
 
+    Spinners.start("building recommendation");
     const recommendation = await EDHRecService.getRecommendation(themeChoice);
     const linkList = await TappedOutService.getSimilarLinks({
       commander,
@@ -55,7 +78,6 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
       hubs: hubsChoice,
       cards: cardsChoice,
     });
-
     for (const link of linkList.links) {
       const { url, position } = link;
       const deck = await TappedOutService.getDeck(url);
@@ -63,20 +85,17 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
       deck.setPosition({ position });
       decks.push(deck);
     }
+    Spinners.succeed();
 
-    const tm2 = new TimerMessage("finalizing deck");
+    Spinners.start("finalizing deck");
     const commanderDeck = new CommanderDeck({ inventoryChoice });
     await commanderDeck.addCommanderDeck(cmdDeck);
     await commanderDeck.addEDHRecommendation(recommendation);
-
     for (const deck of decks) {
       await commanderDeck.addTappedOutDeck(deck);
     }
-
-    commanderDeck.calculate();
-
-    tm2.done();
-    tm1.done();
+    await commanderDeck.calculate();
+    Spinners.succeed();
 
     await ReporterService.buildImproveReport({
       commander,
@@ -89,6 +108,7 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
       cardsChoice,
     });
   } catch (err) {
+    Spinners.fail();
     console.error(err);
   } finally {
     process.exit(0);

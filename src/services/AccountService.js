@@ -3,7 +3,6 @@ import UUIDv4 from "uuid/v4";
 import AES from "crypto-js/aes";
 import encUTF8 from "crypto-js/enc-utf8";
 import NeDB, { Collection } from "utils/NeDB";
-import TimerMessage from "utils/TimerMessage";
 import TappedOutAccount from "models/TappedOutAccount";
 
 class AccountService {
@@ -67,15 +66,12 @@ class AccountService {
   async load() {
     if (this._loaded) return;
 
-    const timerMessage = new TimerMessage("loading account from db");
     const exists = await this._db.find({ name: this._name });
 
     if (!exists) return;
 
     this._cache = exists;
     this._loaded = true;
-
-    timerMessage.done();
   }
 
   /**

@@ -28,6 +28,20 @@ export default class ReporterService {
   /**
    * @param {Commander} commander
    * @param {CommanderDeck} commanderDeck
+   * @returns {Promise<void>}
+   */
+  static async buildDifferenceReport({ commander, commanderDeck }) {
+    const content = [];
+
+    content.push(HTMLService.getSuggestedCards(commanderDeck, 100));
+    content.push(HTMLService.getLeastPopularCards(commanderDeck, 100));
+
+    ReporterService._saveReport(commander, content, "difference");
+  }
+
+  /**
+   * @param {Commander} commander
+   * @param {CommanderDeck} commanderDeck
    * @param {object} programOptions
    * @returns {Promise<void>}
    */
@@ -54,8 +68,6 @@ export default class ReporterService {
   static _getFile(commander, reportType) {
     const cwd = path.join(process.env.PWD, "reports");
     const now = DateFns.format(DateFns.get(), "YYYY-MM-DDTHH_mm_ss");
-
-    console.log("building report");
 
     if (!fs.existsSync(cwd)) {
       fs.mkdirSync(cwd);

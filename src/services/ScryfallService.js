@@ -1,5 +1,6 @@
 /* eslint global-require: 0 */
 
+import fs from "fs";
 import path from "path";
 import download from "download";
 import find from "lodash/find";
@@ -15,7 +16,6 @@ import latinise from "utils/Latinise";
 import NeDB, { Collection } from "utils/NeDB";
 import RateLimit from "utils/RateLimit";
 import searchString from "utils/SearchString";
-import TimerMessage from "utils/TimerMessage";
 
 class ScryfallService {
   constructor() {
@@ -94,9 +94,7 @@ class ScryfallService {
       await this._download();
     }
 
-    const timerMessage = new TimerMessage("loading scryfall cache");
-
-    this._cache = require(this._file);
+    this._cache = await this._readFile();
 
     for (const card of this._cache) {
       const name = searchString(card.name);
@@ -105,8 +103,6 @@ class ScryfallService {
     }
 
     this._loaded = true;
-
-    timerMessage.done();
   }
 
   /**
@@ -126,8 +122,6 @@ class ScryfallService {
       return;
     }
 
-    const timerMessage = new TimerMessage("downloading scryfall cache");
-
     const fileLink = "https://archive.scryfall.com/json/";
     const fileName = "scryfall-default-cards.json";
 
@@ -143,8 +137,6 @@ class ScryfallService {
     }
 
     this._file = file;
-
-    timerMessage.done();
   }
 
   /**
@@ -190,36 +182,17 @@ class ScryfallService {
     const parsedName = queryString.parse(latinise(name));
     const query = queryString.stringify(parsedName);
     const url = `https://api.scryfall.com/cards/search?q=${query}`;
-    let retry = 0;
 
-    const timerMessage = new TimerMessage(`requesting api [ ${query} ]`);
+    await RateLimit.scryfall();
+    const result = await request(url, { method: "GET" });
+    const parsed = JSON.parse(result);
 
-    while (retry < 4) {
-      await RateLimit.scryfall();
-
-      try {
-        const result = await request(url, { method: "GET" });
-        const parsed = JSON.parse(result);
-
-        for (const item of parsed.data) {
-          if (latinise(name) !== latinise(item.name)) continue;
-          return item;
-        }
-
-        console.log(`requesting api [ returning ] [ ${parsed.data[0].name} ]`);
-
-        timerMessage.done();
-
-        return parsed.data[0];
-      } catch (err) {
-        if (err.statusCode === 503) {
-          retry += 1;
-          console.log("error while trying to find card on scryfall. retrying:", retry);
-        } else {
-          throw err;
-        }
-      }
+    for (const item of parsed.data) {
+      if (latinise(name) !== latinise(item.name)) continue;
+      return item;
     }
+
+    return parsed.data[0];
   }
 
   /**
@@ -230,6 +203,21 @@ class ScryfallService {
   static async _parseQueryString(name) {
     const parsed = queryString.parse(name);
     return queryString.stringify(parsed);
+  }
+
+  /**
+   * @returns {Promise<object>}
+   * @private
+   */
+  async _readFile() {
+    return new Promise((resolve, reject) => {
+      fs.readFile(this._file, (err, buffer) => {
+        if (err) reject(err);
+        const string = buffer.toString();
+        const json = JSON.parse(string);
+        resolve(json);
+      });
+    });
   }
 }
 

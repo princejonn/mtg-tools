@@ -2,17 +2,19 @@ import Commander from "models/Commander";
 import TappedOutDeck from "models/TappedOutDeck";
 import TappedOutLinkList from "models/TappedOutLinkList";
 import ScryfallCacheService from "services/ScryfallService";
+import ShareLinkService from "services/ShareLinkService";
 import BasePage from "utils/BasePage";
 import CacheTimeout from "utils/CacheTimeout";
 import NeDB, { Collection } from "utils/NeDB";
 import RateLimit from "utils/RateLimit";
-import TimerMessage from "utils/TimerMessage";
 
 const Selector = {
   USERNAME: "input#id_username",
   PASSWORD: "input#id_password",
   SUBMIT: "input.submit",
   LOGGED_IN: "div.tabbable ul.nav li.active",
+  EMBED_MODAL: "a[href='#embed-modal']",
+  SHARE_LINK: "input.form-control.share-code.state-private-share-f",
   COMMANDER: "ul.boardlist > a",
   COMMANDER_NAME: ".well-jumbotron h1",
   HUB: "#id_hubs option",
@@ -43,37 +45,40 @@ class TappedOutService extends BasePage {
    */
   async getCommander(url, account) {
     const timeout = new CacheTimeout({ years: 1 });
-    const cached = await this._commanders.find({ url });
+
+    const commander = ShareLinkService.getCommanderId(url);
+    const cached = await this._commanders.find({ commander });
 
     if (cached && timeout.isOK(cached.created)) {
       return new Commander(cached);
     } if (cached && !timeout.isOK(cached.created)) {
-      console.log("found commander in database with expired timeout:", url);
-      await this._commanders.remove({ url });
+      await this._commanders.remove({ commander });
     }
 
-    console.log("searching for commander on tapped out:", url);
-    const data = await this._buildCommander(url, account);
+    const data = await this._buildCommander({ commander, url, account });
     await this._commanders.insert(data);
 
     return new Commander(data);
   }
 
   /**
-   * @param {Commander} commander
+   * @param {string} url
    * @param {TappedOutAccount} [account]
    * @returns {Promise<TappedOutDeck>}
    */
-  async getCommanderDeck(commander, account) {
-    const timerMessage = new TimerMessage("finding commander deck");
+  async getCommanderDeck(url, account) {
     await super._init();
 
     if (account) {
       await this._login(account);
     }
 
-    const data = await this._buildDeck(commander.url);
-    timerMessage.done();
+    const data = await this._buildDeck(url);
+
+    if (!data) {
+      throw new Error("unable to build commander deck");
+    }
+
     return new TappedOutDeck(data);
   }
 
@@ -108,11 +113,9 @@ class TappedOutService extends BasePage {
     if (cached && timeout.isOK(cached.created)) {
       return new TappedOutLinkList(cached);
     } if (cached && !timeout.isOK(cached.created)) {
-      console.log("found links in database with expired timeout:", commander.queryString);
       await this._links.remove({ commander: commander.queryString });
     }
 
-    console.log("searching for links on tapped out:", commander.queryString);
     const data = await this._buildSimilarLinks({ commander, budget, top, hubs, cards });
     await this._links.insert(data);
 
@@ -130,19 +133,14 @@ class TappedOutService extends BasePage {
     if (cached && timeout.isOK(cached.created)) {
       return new TappedOutDeck(cached);
     } if (cached && !timeout.isOK(cached.created)) {
-      console.log("found deck in database with expired timeout:", url);
       await this._decks.remove({ url });
     }
 
-    try {
-      const data = await this._buildDeck(url);
-      if (data.cards.length > 100) return null;
-      await this._decks.insert(data);
+    const data = await this._buildDeck(url);
+    if (data.cards.length > 100) return null;
+    await this._decks.insert(data);
 
-      return new TappedOutDeck(data);
-    } catch (err) {
-      console.log("unable to build deck:", url);
-    }
+    return new TappedOutDeck(data);
   }
 
   /**
@@ -156,11 +154,9 @@ class TappedOutService extends BasePage {
     if (cached && timeout.isOK(cached.created)) {
       return cached.list;
     } if (cached && !timeout.isOK(cached.created)) {
-      console.log("found hubs in database with expired timeout");
       await this._hubs.remove({ name });
     }
 
-    console.log("searching for hubs on tapped out");
     const data = await this._buildHubs();
     await this._hubs.insert({
       name,
@@ -171,38 +167,34 @@ class TappedOutService extends BasePage {
   }
 
   /**
+   * @param {string} commander
    * @param {string} url
    * @param {TappedOutAccount} [account]
-   * @returns {Promise<{name: string, url: string}>}
+   * @returns {Promise<{commander: string, name: string, url: string}>}
    * @private
    */
-  async _buildCommander(url, account) {
+  async _buildCommander({ commander, url, account }) {
     await super._init();
 
     if (account) {
       await this._login(account);
     }
 
-    const timerMessage = new TimerMessage("finding commander");
-
     await RateLimit.tappedOut();
-    await this._manager.goto({
+    await super.goto({
       url,
       waitForSelector: Selector.CARD,
     });
 
-    await this._manager.page.click(Selector.COMMANDER);
-    await this._manager.page.waitForSelector(Selector.COMMANDER_NAME, { visible: true });
-    const element = await this._manager.page.$(Selector.COMMANDER_NAME);
+    await super.click(Selector.COMMANDER);
+    const element = await super.find(Selector.COMMANDER_NAME);
 
-    let name = await this._manager.getElementText(element);
+    let name = await super.getText(element);
 
     name = name.replace(/\s{2,}/g, "");
     name = name.replace(/\n/g, "");
 
-    timerMessage.done();
-
-    return { name, url };
+    return { commander, name, url };
   }
 
   /**
@@ -216,8 +208,6 @@ class TappedOutService extends BasePage {
    */
   async _buildSimilarLinks({ commander, budget, top, hubs, cards }) {
     await super._init();
-
-    const timerMessage = new TimerMessage(`finding similar links with ${budget.text}`);
 
     const maxPages = 5;
     const baseUrl = `${this._searchUrl}?q=&format=edh&general=${commander.queryString}&o=-rating&submit=Filter+results`;
@@ -249,36 +239,38 @@ class TappedOutService extends BasePage {
 
       searchUrl += `&p=${page}&page=${page}`;
 
-      console.log("searching:", searchUrl);
-
       try {
         await RateLimit.tappedOut();
-        await this._manager.goto({
+        await super.goto({
           url: searchUrl,
           waitForSelector: Selector.SEARCH_FILTER_BUTTON,
         });
 
-        await this._manager.page.click(Selector.SEARCH_FILTER_BUTTON);
-        await this._manager.page.waitForSelector(Selector.DECK_LINK, { visible: true });
-
-        const elements = await this._manager.page.$$(Selector.DECK_LINK);
+        await super.click(Selector.SEARCH_FILTER_BUTTON);
+        await this.waitFor(Selector.DECK_LINK);
+        const elements = await this.findAll(Selector.DECK_LINK);
 
         for (const element of elements) {
-          const href = await this._manager.getElementAttribute(element, "href");
+          const href = await super.getAttribute(element, "href");
           const url = `https://tappedout.net${href}?cat=type&sort=name`;
           links.push({ position, url });
           position += 1;
         }
       } catch (err) {
-        console.log("unable to find links on page:", page);
+        // do nothing
       }
 
       page += 1;
     }
 
-    timerMessage.done();
-
-    return { commander: commander.queryString, price: budget.num, top: top.num, hubs, cards, links };
+    return {
+      commander: commander.queryString,
+      price: budget.num,
+      top: top.num,
+      hubs,
+      cards,
+      links,
+    };
   }
 
   /**
@@ -288,23 +280,19 @@ class TappedOutService extends BasePage {
   async _buildHubs() {
     await super._init();
 
-    const timerMessage = new TimerMessage("finding hubs on search page");
-
     await RateLimit.tappedOut();
-    await this._manager.goto({
+    await super.goto({
       url: this._searchUrl,
       waitForSelector: Selector.HUB,
     });
 
-    const elements = await this._manager.page.$$(Selector.HUB);
+    const elements = await super.findAll(Selector.HUB);
     const list = [];
 
     for (const element of elements) {
-      const value = await this._manager.getElementAttribute(element, "value");
+      const value = await super.getAttribute(element, "value");
       list.push(value);
     }
-
-    timerMessage.done();
 
     return list;
   }
@@ -317,34 +305,32 @@ class TappedOutService extends BasePage {
   async _buildDeck(url) {
     await super._init();
 
-    const timerMessage = new TimerMessage(`finding cards [ ${url} ]`);
-
     const cards = [];
     let retry = 0;
 
     while (retry < 4) {
       try {
         await RateLimit.tappedOut();
-        await this._manager.goto({
+        await super.goto({
           url,
           waitForSelector: Selector.CARD,
         });
 
-        const parents = await this._manager.page.$$(Selector.CARD_LIST);
+        const parents = await super.findAll(Selector.CARD_LIST);
         const mainBoard = parents[0];
         const cardItems = await mainBoard.$$(Selector.MEMBER);
 
         for (const item of cardItems) {
           const card = await item.$(Selector.CARD);
-          const amountString = await this._manager.getElementAttribute(card, "data-qty");
-          let name = await this._manager.getElementAttribute(card, "data-name");
+          const amountString = await super.getAttribute(card, "data-qty");
+          let name = await super.getAttribute(card, "data-name");
           const amount = parseInt(amountString, 10);
 
           const flip = await item.$$(Selector.CARD_LINK);
 
           if (flip.length > 1) {
             const flipLink = flip[1];
-            const flipName = await this._manager.getElementAttribute(flipLink, "data-name");
+            const flipName = await super.getAttribute(flipLink, "data-name");
             if (flipName) {
               name = `${name} // ${flipName}`;
             }
@@ -353,18 +339,20 @@ class TappedOutService extends BasePage {
           const cachedCard = await ScryfallCacheService.find(name);
           if (!cachedCard.id) continue;
 
-          cards.push({ id: cachedCard.id, tappedOut: { amount } });
+          cards.push({
+            id: cachedCard.id,
+            tappedOut: {amount},
+          });
         }
-
-        timerMessage.done();
 
         return { url, cards };
       } catch (err) {
+        await TappedOutService._removeShareLink(url);
         retry += 1;
-        console.log("error while trying to find deck on tapped out. retrying:", retry);
-        console.error(err);
       }
     }
+
+    return null;
   }
 
   /**
@@ -377,21 +365,27 @@ class TappedOutService extends BasePage {
 
     await super._init();
 
-    const timerMessage = new TimerMessage("login");
-
     await RateLimit.tappedOut();
-    await this._manager.goto({
+    await super.goto({
       url: "https://tappedout.net/accounts/login/?next=/",
       waitForSelector: Selector.USERNAME,
     });
-    await this._manager.page.type(Selector.USERNAME, account.username);
-    await this._manager.page.type(Selector.PASSWORD, account.password);
-    await this._manager.page.click(Selector.SUBMIT);
-    await this._manager.page.waitForSelector(Selector.LOGGED_IN, { visible: true });
-
-    timerMessage.done();
+    await super.type(Selector.USERNAME, account.username);
+    await super.type(Selector.PASSWORD, account.password);
+    await super.click(Selector.SUBMIT);
+    await super.waitFor(Selector.LOGGED_IN);
 
     this._loggedIn = true;
+  }
+
+  /**
+   * @param {string} url
+   * @returns {Promise<void>}
+   * @private
+   */
+  static async _removeShareLink(url) {
+    if (!ShareLinkService.isShare(url)) return;
+    await ShareLinkService.remove(url);
   }
 
   destroy() {

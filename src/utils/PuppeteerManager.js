@@ -27,7 +27,7 @@ export default class PuppeteerManager {
   }
 
   /**
-   * @param {object} element
+   * @param {Puppeteer.ElementHandle} element
    * @param {string} attribute
    * @returns {Promise<string>}
    */
@@ -38,7 +38,7 @@ export default class PuppeteerManager {
   }
 
   /**
-   * @param {object} element
+   * @param {Puppeteer.ElementHandle} element
    * @returns {Promise<string>}
    */
   async getElementText(element) {

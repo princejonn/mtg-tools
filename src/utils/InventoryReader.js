@@ -2,7 +2,6 @@ import path from "path";
 import NReadLines from "n-readlines";
 import CSVtoJSON from "csvtojson";
 import latinise from "utils/Latinise";
-import TimerMessage from "./TimerMessage";
 
 const returnCsv = async (file, nameKey = "Name", amountKey = "Quantity") => {
   const cards = {};
@@ -67,18 +66,13 @@ const returnLines = async file => {
  */
 export default async (file, nameKey, amountKey) => {
   const ext = path.extname(file);
-  const timerMessage = new TimerMessage("loading file");
 
   if (ext === ".csv") {
-    const result = returnCsv(file, nameKey, amountKey);
-    timerMessage.done();
-    return result;
+    return returnCsv(file, nameKey, amountKey);
   }
 
   if (ext === ".txt") {
-    const result = returnLines(file);
-    timerMessage.done();
-    return result;
+    return returnLines(file);
   }
 
   throw new Error("unsupported format. only [ .csv | .txt ] files allowed");

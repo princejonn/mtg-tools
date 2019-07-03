@@ -5,7 +5,6 @@ import BasePage from "utils/BasePage";
 import CacheTimeout from "utils/CacheTimeout";
 import RateLimit from "utils/RateLimit";
 import NeDB, { Collection } from "utils/NeDB";
-import TimerMessage from "utils/TimerMessage";
 
 const Selector = {
   CARD_ELEMENT: "div#cardlists div.nw",
@@ -31,11 +30,9 @@ class EDHRecService extends BasePage {
     if (cached && timeout.isOK(cached.created)) {
       return cached.themes;
     } if (cached && !timeout.isOK(cached.created)) {
-      console.log("found themes in database with expired timeout:", commander.queryString);
       await this._themes.remove({ commander: commander.queryString });
     }
 
-    console.log("searching for themes on edhrec:", commander.queryString);
     const data = await this._buildThemes(commander);
     await this._themes.insert({
       commander: commander.queryString,
@@ -56,7 +53,6 @@ class EDHRecService extends BasePage {
     if (cached && timeout.isOK(cached.created)) {
       return new EDHRecRecommendation(cached);
     } if (cached && !timeout.isOK(cached.created)) {
-      console.log("found commander recommendation in database with expired timeout:", theme.url);
       await this._recommendations.remove({ url: theme.url });
     }
 
@@ -74,27 +70,31 @@ class EDHRecService extends BasePage {
   async _buildThemes(commander) {
     await super._init();
 
-    const timerMessage = new TimerMessage("finding themes");
-
     const themes = [];
 
     const themeSelector = `a[href^="${commander.queryString}-"]`;
     const commanderUrl = `https://edhrec.com/commanders/${commander.queryString}`;
 
     await RateLimit.edhRec();
-    await this._manager.goto({
+    await super.goto({
       url: commanderUrl,
       waitForSelector: themeSelector,
     });
 
     let num = 0;
-    themes.push({ text: "no theme/budget", url: commanderUrl, type: "none", num });
 
-    const elements = await this._manager.page.$$(themeSelector);
+    themes.push({
+      text: "no theme/budget",
+      url: commanderUrl,
+      type: "none",
+      num,
+    });
+
+    const elements = await super.findAll(themeSelector);
     for (const element of elements) {
-      const href = await this._manager.getElementAttribute(element, "href");
+      const href = await super.getAttribute(element, "href");
 
-      let text = await this._manager.getElementText(element);
+      let text = await super.getText(element);
       text = text.replace(/\s{2,}/g, "");
       text = text.replace(/\n/g, "");
 
@@ -103,16 +103,12 @@ class EDHRecService extends BasePage {
         url: `https://edhrec.com/commanders/${href}`,
       };
 
-      const type = includes(href, "budget")
-        ? "budget"
-        : "theme";
+      const type = includes(href, "budget") ? "budget" : "theme";
 
       num += 1;
 
       themes.push({ ...object, type, num });
     }
-
-    timerMessage.done();
 
     return themes;
   }
@@ -125,8 +121,6 @@ class EDHRecService extends BasePage {
   async _buildRecommendation(theme) {
     await super._init();
 
-    const timerMessage = new TimerMessage("finding recommendation");
-
     const cards = [];
 
     const regexDecksPercent = /(\d+\%.*of)/;
@@ -135,21 +129,21 @@ class EDHRecService extends BasePage {
     const numbers = /\d+\.?\d*/;
 
     await RateLimit.edhRec();
-    await this._manager.goto({
+    await super.goto({
       url: theme.url,
       waitForSelector: Selector.CARD_ELEMENT,
     });
 
-    const elements = await this._manager.page.$$(Selector.CARD_ELEMENT);
+    const elements = await super.findAll(Selector.CARD_ELEMENT);
     for (const element of elements) {
       const nameElement = await element.$(Selector.CARD_NAME);
-      const name = await this._manager.getElementText(nameElement);
+      const name = await super.getText(nameElement);
 
       const card = await ScryfallCacheService.find(name);
       if (!card.id) continue;
 
       const descElement = await element.$(Selector.CARD_DESC);
-      const desc = await this._manager.getElementText(descElement);
+      const desc = await super.getText(descElement);
 
       const inPercentOfDecks = desc.match(regexDecksPercent)[0];
       const inPercentOfDecksDigits = parseInt(inPercentOfDecks.match(numbers)[0], 10);
@@ -166,14 +160,21 @@ class EDHRecService extends BasePage {
 
       const amount = Math.floor(inAmountOfDecksFloat * inPercentOfDecksFloat);
       const synergy = parseFloat(`${plusMinusSynergy}${synergyInDecksDigits}`);
-      const percent = inPercentOfDecksDigits;
 
-      cards.push({ id: card.id, edhRec: { amount, percent, synergy } });
+      cards.push({
+        id: card.id,
+        edhRec: {
+          amount,
+          percent: inPercentOfDecksDigits,
+          synergy,
+        },
+      });
     }
 
-    timerMessage.done();
-
-    return { url: theme.url, cards };
+    return {
+      url: theme.url,
+      cards,
+    };
   }
 
   destroy() {

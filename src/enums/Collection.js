@@ -8,5 +8,6 @@ export default {
   LINKS: "links",
   RECOMMENDATIONS: "recommendations",
   SCRYFALL: "scryfall",
+  SHARE_LINKS: "share-links",
   THEMES: "themes",
 };

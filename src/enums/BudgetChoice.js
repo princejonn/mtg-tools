@@ -1,7 +1,7 @@
 export default [
   {
     num: 0,
-    text: "no budget",
+    text: "unlimited budget",
     price: 0,
     type: "none",
   },

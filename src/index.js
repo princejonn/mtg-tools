@@ -3,19 +3,32 @@
 import program from "commander";
 import packageJson from "#/package.json";
 import clear from "bin/clear";
+import deckDiff from "bin/deck-diff";
 import improve from "bin/improve";
 import inventory from "bin/inventory";
 import login from "bin/login";
 import recommend from "bin/recommend";
+import shareLinks from "bin/share-links";
 
 
 program
   .command("clear")
   .alias("c")
-  .description("resetting all cached data")
+  .description("clearing all cached data")
 
   .action(async () => {
     await clear();
+  });
+
+
+program
+  .command("diff")
+  .alias("d")
+  .description("comparing two decks diff")
+  .arguments("<urls...>")
+
+  .action(async (urls) => {
+    await deckDiff(urls);
   });
 
 
@@ -95,6 +108,17 @@ program
       top: cmd.top,
       cards: cmd.cards,
     });
+  });
+
+
+program
+  .command("share-links")
+  .alias("s")
+  .description("saving all share links in cache to reduce the need for login")
+  .arguments("<urls...>")
+
+  .action(async (urls) => {
+    await shareLinks(urls);
   });
 
 

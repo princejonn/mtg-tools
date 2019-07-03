@@ -6,7 +6,7 @@ import InventoryService from "services/InventoryService";
 import ReporterService from "services/ReporterService";
 import ScryfallService from "services/ScryfallService";
 import TappedOutService from "services/TappedOutService";
-import TimerMessage from "utils/TimerMessage";
+import Spinners from "utils/Spinners";
 
 /**
  * @param {string} name
@@ -19,13 +19,17 @@ import TimerMessage from "utils/TimerMessage";
  * @returns {Promise<void>}
  */
 export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
+  const decks = [];
+
   try {
-    const tm1 = new TimerMessage("creating deck recommendation");
-
+    Spinners.start("loading cache");
     await ScryfallService.load();
-    await InventoryService.load();
+    Spinners.succeed();
 
-    const decks = [];
+    Spinners.start("loading inventory");
+    await InventoryService.load();
+    Spinners.succeed();
+
     const commander = new Commander({ name });
 
     const themeChoice = await InquiryService.selectTheme(commander, theme);
@@ -35,6 +39,7 @@ export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
     const hubsChoice = await InquiryService.selectHubs(hubs);
     const cardsChoice = await InquiryService.selectCards(cards);
 
+    Spinners.start("building recommendation");
     const recommendation = await EDHRecService.getRecommendation(themeChoice);
     const linkList = await TappedOutService.getSimilarLinks({
       commander,
@@ -43,7 +48,6 @@ export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
       hubs: hubsChoice,
       cards: cardsChoice,
     });
-
     for (const link of linkList.links) {
       const { url, position } = link;
       const deck = await TappedOutService.getDeck(url);
@@ -51,19 +55,16 @@ export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
       deck.setPosition({ position });
       decks.push(deck);
     }
+    Spinners.succeed();
 
-    const tm2 = new TimerMessage("finalizing deck");
+    Spinners.start("finalizing deck");
     const commanderDeck = new CommanderDeck({ inventoryChoice });
     await commanderDeck.addEDHRecommendation(recommendation);
-
     for (const deck of decks) {
       await commanderDeck.addTappedOutDeck(deck);
     }
-
-    commanderDeck.calculate();
-
-    tm1.done();
-    tm2.done();
+    await commanderDeck.calculate();
+    Spinners.succeed();
 
     await ReporterService.buildRecommendReport({
       commander,
@@ -76,6 +77,7 @@ export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
       cardsChoice,
     });
   } catch (err) {
+    Spinners.fail();
     console.error(err);
   } finally {
     process.exit(0);

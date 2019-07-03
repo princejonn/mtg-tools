@@ -1,7 +1,6 @@
 import find from "lodash/find";
 import ScryfallCacheService from "services/ScryfallService";
 import NeDB, { Collection } from "utils/NeDB";
-import TimerMessage from "utils/TimerMessage";
 
 class InventoryService {
   constructor() {
@@ -31,12 +30,8 @@ class InventoryService {
   async load() {
     if (this._loaded) return;
 
-    const timerMessage = new TimerMessage("loading inventory cache");
-
     this._cache = await this._db.get();
     this._loaded = true;
-
-    timerMessage.done();
   }
 
   /**
@@ -47,8 +42,6 @@ class InventoryService {
     let uniqueCards = 0;
     let amountSaved = 0;
 
-    const timerMessage = new TimerMessage("saving inventory to db");
-
     for (const key in fileContent) {
       if (!fileContent.hasOwnProperty(key)) continue;
       const name = key;
@@ -57,8 +50,6 @@ class InventoryService {
       uniqueCards += 1;
       amountSaved += amount;
     }
-
-    timerMessage.done();
 
     return { amountSaved, uniqueCards };
   }

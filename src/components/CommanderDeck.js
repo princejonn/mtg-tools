@@ -22,7 +22,8 @@ export default class CommanderDeck {
     this._averageTypes = {};
     this._typeSuggestion = {};
     this._isCalculated = false;
-    this._onlyInventory = options.inventoryChoice.value || false;
+    this._inventoryChoice = options.inventoryChoice || {};
+    this._onlyInventory = this._inventoryChoice.value || false;
 
     this.mostSuggestedCards = null;
     this.leastPopularCardsInDeck = null;
@@ -45,7 +46,7 @@ export default class CommanderDeck {
         throw new Error("trying to add more of the same card in a commander deck");
       }
 
-      this._sumCardTypes(this._types, card, data.tappedOut);
+      await this._sumCardTypes(this._types, card, data.tappedOut);
 
       card.isCommander = true;
       card.setEDHRec(data.edhRec);
@@ -65,7 +66,7 @@ export default class CommanderDeck {
       const card = await ScryfallCacheService.getCard(data.id);
       const existingCard = find(this._cards, { id: card.id });
 
-      this._sumCardTypes(this._tappedOut.types, card, data.tappedOut);
+      await this._sumCardTypes(this._tappedOut.types, card, data.tappedOut);
 
       if (existingCard) {
         existingCard.addTappedOut(data.tappedOut);
@@ -102,7 +103,7 @@ export default class CommanderDeck {
     }
   }
 
-  calculate() {
+  async calculate() {
     if (this._isCalculated) return;
 
     for (const card of this._cards) {
@@ -135,27 +136,27 @@ export default class CommanderDeck {
     this._typeSuggestion = { add, remove };
     this._averageTypes = types;
 
-    this._setMostSuggestedCards();
-    this._setLeastPopularCardsInDeck();
-    this._setTypedRecommendation();
-    this._setCardsToAdd();
-    this._setCardsToRemove();
+    await this._setMostSuggestedCards();
+    await this._setLeastPopularCardsInDeck();
+    await this._setTypedRecommendation();
+    await this._setCardsToAdd();
+    await this._setCardsToRemove();
 
     this._isCalculated = true;
   }
 
-  _setMostSuggestedCards() {
-    const cards = this._filterCards(false);
+  async _setMostSuggestedCards() {
+    const cards = await this._filterCards(false);
     this.mostSuggestedCards = arraySort(cards, "percent", SortBy.DESCENDING);
   }
 
-  _setLeastPopularCardsInDeck() {
-    const cards = this._filterCards(true);
+  async _setLeastPopularCardsInDeck() {
+    const cards = await this._filterCards(true);
     this.leastPopularCardsInDeck = arraySort(cards, "percent", SortBy.ASCENDING);
   }
 
-  _setTypedRecommendation() {
-    const cards = this._filterCards();
+  async _setTypedRecommendation() {
+    const cards = await this._filterCards();
     const sorted = arraySort(cards, "percent", SortBy.DESCENDING);
     const averageTypes = cloneDeep(this._averageTypes);
     const typesCards = {};
@@ -184,12 +185,12 @@ export default class CommanderDeck {
     this.typedRecommendation = typesCards;
   }
 
-  _setCardsToAdd() {
-    this.cardsToAdd = this._getCardsTo("add", false, SortBy.DESCENDING);
+  async _setCardsToAdd() {
+    this.cardsToAdd = await this._getCardsTo("add", false, SortBy.DESCENDING);
   }
 
-  _setCardsToRemove() {
-    this.cardsToRemove = this._getCardsTo("remove", true, SortBy.ASCENDING);
+  async _setCardsToRemove() {
+    this.cardsToRemove = await this._getCardsTo("remove", true, SortBy.ASCENDING);
   }
 
   /**
@@ -210,10 +211,10 @@ export default class CommanderDeck {
    * @param {string} sortBy
    * @private
    */
-  _getCardsTo(addRemove, inDeck, sortBy) {
+  async _getCardsTo(addRemove, inDeck, sortBy) {
     const typeSuggestion = cloneDeep(this._typeSuggestion);
     const suggestion = typeSuggestion[addRemove];
-    const filtered = this._filterCards(inDeck);
+    const filtered = await this._filterCards(inDeck);
     const sorted = arraySort(filtered, "percent", sortBy);
     const typedCards = {};
 
@@ -247,7 +248,7 @@ export default class CommanderDeck {
    * @returns {Array}
    * @private
    */
-  _filterCards(inDeck) {
+  async _filterCards(inDeck) {
     let cards = this._cards;
 
     if (!isUndefined(inDeck)) {
@@ -267,7 +268,7 @@ export default class CommanderDeck {
    * @param {object} tappedOut
    * @private
    */
-  _sumCardTypes(path, card, tappedOut) {
+  async _sumCardTypes(path, card, tappedOut) {
     const { type } = card;
     const { amount } = tappedOut;
     if (!path[type]) {
