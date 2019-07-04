@@ -2,6 +2,7 @@
 
 import program from "commander";
 import packageJson from "#/package.json";
+import cardMarket from "bin/card-market";
 import clear from "bin/clear";
 import deckDiff from "bin/deck-diff";
 import improve from "bin/improve";
@@ -9,6 +10,17 @@ import inventory from "bin/inventory";
 import login from "bin/login";
 import recommend from "bin/recommend";
 import shareLinks from "bin/share-links";
+
+
+program
+  .command("card-market")
+  .alias("m")
+  .description("building a deck list of cards not in your inventory")
+  .arguments("<urls...>")
+
+  .action(async (urls) => {
+    await cardMarket(urls);
+  });
 
 
 program

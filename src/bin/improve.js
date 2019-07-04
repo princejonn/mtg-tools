@@ -1,7 +1,7 @@
 import includes from "lodash/includes";
 import isObject from "lodash/isObject";
 import isString from "lodash/isString";
-import CommanderDeck from "components/CommanderDeck";
+import ImproveDeck from "components/ImproveDeck";
 import EDHRecService from "services/EDHRecService";
 import InquiryService from "services/InquiryService";
 import InventoryService from "services/InventoryService";
@@ -30,33 +30,34 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
   };
 
   try {
+    Spinners.start("preparing");
+
     if (!includes(url, "tappedout.net/mtg-decks/")) {
       throw new Error("url incorrect. only tappedout decks currently allowed");
     }
 
-    Spinners.start("preparing");
     const shareLink = await ShareLinkService.getOrSet(url);
+
     if (isObject(shareLink) && isString(shareLink.link)) {
       options.loginRequired = false;
       url = shareLink.link;
     }
-    Spinners.succeed();
 
     if (options.loginRequired) {
       options.account = await InquiryService.loginAccount(forceLogin);
+
+      Spinners.next("logging in");
+      await TappedOutService.login(options.account);
     }
 
-    Spinners.start("loading cache");
+    Spinners.next("loading cache");
     await ScryfallService.load();
-    Spinners.succeed();
 
-    Spinners.start("loading inventory");
+    Spinners.next("loading inventory");
     await InventoryService.load();
-    Spinners.succeed();
 
-    Spinners.start("finding commander");
-    const commander = await TappedOutService.getCommander(url, options.account);
-    Spinners.succeed();
+    Spinners.next("finding commander");
+    const commander = await TappedOutService.getCommander(url);
 
     const themeChoice = await InquiryService.selectTheme(commander, theme);
     const budgetChoice = await InquiryService.selectBudget(budget);
@@ -65,12 +66,13 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
     const hubsChoice = await InquiryService.selectHubs(hubs);
     const cardsChoice = await InquiryService.selectCards(cards);
 
-    Spinners.start("finding commander deck");
-    const cmdDeck = await TappedOutService.getCommanderDeck(url, options.account);
-    Spinners.succeed();
+    Spinners.next("finding commander deck");
+    const cmdDeck = await TappedOutService.getDeck(url);
 
-    Spinners.start("building recommendation");
+    Spinners.next("finding edh-recommendation");
     const recommendation = await EDHRecService.getRecommendation(themeChoice);
+
+    Spinners.next("finding tapped-out links");
     const linkList = await TappedOutService.getSimilarLinks({
       commander,
       budget: budgetChoice,
@@ -78,6 +80,8 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
       hubs: hubsChoice,
       cards: cardsChoice,
     });
+
+    Spinners.next("finding tapped-out decks");
     for (const link of linkList.links) {
       const { url, position } = link;
       const deck = await TappedOutService.getDeck(url);
@@ -85,21 +89,23 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
       deck.setPosition({ position });
       decks.push(deck);
     }
-    Spinners.succeed();
 
-    Spinners.start("finalizing deck");
-    const commanderDeck = new CommanderDeck({ inventoryChoice });
-    await commanderDeck.addCommanderDeck(cmdDeck);
-    await commanderDeck.addEDHRecommendation(recommendation);
+    Spinners.next("building deck");
+    const improveDeck = new ImproveDeck({ inventoryChoice });
+    await improveDeck.addCommanderDeck(cmdDeck);
+    await improveDeck.addEDHRecommendation(recommendation);
+
     for (const deck of decks) {
-      await commanderDeck.addTappedOutDeck(deck);
+      await improveDeck.addTappedOutDeck(deck);
     }
-    await commanderDeck.calculate();
+
+    await improveDeck.calculate();
+
     Spinners.succeed();
 
     await ReporterService.buildImproveReport({
       commander,
-      commanderDeck,
+      improveDeck,
       budgetChoice,
       themeChoice,
       inventoryChoice,

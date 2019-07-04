@@ -40,10 +40,9 @@ class TappedOutService extends BasePage {
 
   /**
    * @param {string} url
-   * @param {TappedOutAccount} [account]
    * @returns {Promise<Commander>}
    */
-  async getCommander(url, account) {
+  async getCommander(url) {
     const timeout = new CacheTimeout({ years: 1 });
 
     const commander = ShareLinkService.getCommanderId(url);
@@ -55,31 +54,10 @@ class TappedOutService extends BasePage {
       await this._commanders.remove({ commander });
     }
 
-    const data = await this._buildCommander({ commander, url, account });
+    const data = await this._buildCommander({ commander, url });
     await this._commanders.insert(data);
 
     return new Commander(data);
-  }
-
-  /**
-   * @param {string} url
-   * @param {TappedOutAccount} [account]
-   * @returns {Promise<TappedOutDeck>}
-   */
-  async getCommanderDeck(url, account) {
-    await super._init();
-
-    if (account) {
-      await this._login(account);
-    }
-
-    const data = await this._buildDeck(url);
-
-    if (!data) {
-      throw new Error("unable to build commander deck");
-    }
-
-    return new TappedOutDeck(data);
   }
 
   /**
@@ -167,18 +145,43 @@ class TappedOutService extends BasePage {
   }
 
   /**
+   * @param {TappedOutAccount} account
+   * @returns {Promise<void>}
+   */
+  async login(account) {
+    if (this._loggedIn) return;
+
+    await super._init();
+
+    await RateLimit.tappedOut();
+    await super.goto({
+      url: "https://tappedout.net/accounts/login/?next=/",
+      waitForSelector: Selector.USERNAME,
+    });
+    await super.type(Selector.USERNAME, account.username);
+    await super.type(Selector.PASSWORD, account.password);
+    await super.click(Selector.SUBMIT);
+    await super.waitFor(Selector.LOGGED_IN);
+
+    this._loggedIn = true;
+  }
+
+  destroy() {
+    this._manager.destroy();
+  }
+
+  //
+  // Private
+  //
+
+  /**
    * @param {string} commander
    * @param {string} url
-   * @param {TappedOutAccount} [account]
    * @returns {Promise<{commander: string, name: string, url: string}>}
    * @private
    */
-  async _buildCommander({ commander, url, account }) {
+  async _buildCommander({ commander, url }) {
     await super._init();
-
-    if (account) {
-      await this._login(account);
-    }
 
     await RateLimit.tappedOut();
     await super.goto({
@@ -356,29 +359,6 @@ class TappedOutService extends BasePage {
   }
 
   /**
-   * @param {TappedOutAccount} account
-   * @returns {Promise<void>}
-   * @private
-   */
-  async _login(account) {
-    if (this._loggedIn) return;
-
-    await super._init();
-
-    await RateLimit.tappedOut();
-    await super.goto({
-      url: "https://tappedout.net/accounts/login/?next=/",
-      waitForSelector: Selector.USERNAME,
-    });
-    await super.type(Selector.USERNAME, account.username);
-    await super.type(Selector.PASSWORD, account.password);
-    await super.click(Selector.SUBMIT);
-    await super.waitFor(Selector.LOGGED_IN);
-
-    this._loggedIn = true;
-  }
-
-  /**
    * @param {string} url
    * @returns {Promise<void>}
    * @private
@@ -386,10 +366,6 @@ class TappedOutService extends BasePage {
   static async _removeShareLink(url) {
     if (!ShareLinkService.isShare(url)) return;
     await ShareLinkService.remove(url);
-  }
-
-  destroy() {
-    this._manager.destroy();
   }
 }
 

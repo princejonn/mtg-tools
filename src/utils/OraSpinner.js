@@ -1,4 +1,5 @@
 import ora from "ora";
+import dateFns from "date-fns";
 
 export default class OraSpinner {
   /**
@@ -6,6 +7,7 @@ export default class OraSpinner {
    */
   constructor(text) {
     this._text = text;
+    this._date = null;
     this._spinner = ora({ color: "yellow" });
   }
 
@@ -16,6 +18,7 @@ export default class OraSpinner {
     if (!text) {
       text = this._text;
     }
+    this._date = new Date();
     this._spinner.start(text);
   }
 
@@ -26,7 +29,8 @@ export default class OraSpinner {
     if (!text) {
       text = this._text;
     }
-    this._spinner.succeed(text);
+    const time = dateFns.differenceInMilliseconds(new Date(), this._date);
+    this._spinner.succeed(`${text} (${time}ms)`);
   }
 
   /**
@@ -36,6 +40,7 @@ export default class OraSpinner {
     if (!text) {
       text = this._text;
     }
-    this._spinner.fail(text);
+    const time = dateFns.differenceInMilliseconds(new Date(), this._date);
+    this._spinner.fail(`${text} (${time}ms)`);
   }
 }

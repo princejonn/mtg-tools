@@ -22,64 +22,64 @@ export default class HTMLService {
   }
 
   /**
-   * @param {CommanderDeck} commanderDeck
+   * @param {ImproveDeck} improveDeck
    * @param {number} maximum
    * @returns {string}
    */
-  static getSuggestedCards(commanderDeck, maximum) {
-    const cards = commanderDeck.mostSuggestedCards;
+  static getMostPopularCards(improveDeck, maximum) {
+    const cards = improveDeck.mostPopularCards;
     const length = cards.length <= maximum ? cards.length : maximum;
     const array = HTMLService._buildCardsHTML(cards.slice(0, length));
 
-    return (`<header class="card-list-header font-large">Consider adding these cards</header>
+    return (`<header class="card-list-header font-header">Consider adding these cards</header>
     <section class="card-list">${array.join("")}</section>`);
   }
 
   /**
-   * @param {CommanderDeck} commanderDeck
+   * @param {ImproveDeck} improveDeck
    * @param {number} maximum
    * @returns {string}
    */
-  static getLeastPopularCards(commanderDeck, maximum) {
-    const cards = commanderDeck.leastPopularCardsInDeck;
+  static getLeastPopularCards(improveDeck, maximum) {
+    const cards = improveDeck.leastPopularCards;
     const length = cards.length <= maximum ? cards.length : maximum;
     const array = HTMLService._buildCardsHTML(cards.slice(0, length));
 
-    return (`<header class="card-list-header font-large">Consider removing these cards</header>
+    return (`<header class="card-list-header font-header">Consider removing these cards</header>
     <section class="card-list">${array.join("")}</section>`);
+  }
+
+  /**
+   * @param {ImproveDeck} improveDeck
+   * @returns {string}
+   */
+  static getCardsToAdd(improveDeck) {
+    return this._buildSuggestionHTML(improveDeck.cardsToAdd, "Add the following cards to have correct types amount");
+  }
+
+  /**
+   * @param {ImproveDeck} improveDeck
+   * @returns {string}
+   */
+  static getCardsToRemove(improveDeck) {
+    return this._buildSuggestionHTML(improveDeck.cardsToRemove, "Remove the following cards to have correct types amount");
   }
 
   /**
    * @param {Commander} commander
-   * @param {CommanderDeck} commanderDeck
+   * @param {RecommendDeck} recommendDeck
    * @returns {string}
    */
-  static getTypedRecommendationDeckList(commander, commanderDeck) {
-    return this._buildTypedDeckList(commander, commanderDeck.typedRecommendation);
+  static getTypedRecommendationDeckList(commander, recommendDeck) {
+    return this._buildTypedDeckList(commander, recommendDeck.typedRecommendation);
   }
 
   /**
-   * @param {CommanderDeck} commanderDeck
+   * @param {RecommendDeck} recommendDeck
    * @returns {string}
    */
-  static getTypedRecommendation(commanderDeck) {
-    return this._buildSuggestionHTML(commanderDeck.typedRecommendation, "Recommendation based on types");
-  }
-
-  /**
-   * @param {CommanderDeck} commanderDeck
-   * @returns {string}
-   */
-  static getCardsToAdd(commanderDeck) {
-    return this._buildSuggestionHTML(commanderDeck.cardsToAdd, "Add the following cards to have correct types amount");
-  }
-
-  /**
-   * @param {CommanderDeck} commanderDeck
-   * @returns {string}
-   */
-  static getCardsToRemove(commanderDeck) {
-    return this._buildSuggestionHTML(commanderDeck.cardsToRemove, "Remove the following cards to have correct types amount");
+  static getTypedRecommendation(recommendDeck) {
+    return this._buildSuggestionHTML(recommendDeck.typedRecommendation, "Recommendation based on types");
   }
 
   /**
@@ -91,7 +91,7 @@ export default class HTMLService {
   static _buildSuggestionHTML(suggestion, header) {
     const content = [];
 
-    content.push(`<header class="card-list-header font-large">${header}</header>`);
+    content.push(`<header class="card-list-header font-header">${header}</header>`);
     content.push(`<section class="card-list">`);
 
     for (const key in suggestion) {
@@ -205,8 +205,8 @@ export default class HTMLService {
   padding: 0;
 }
 .card-list-header {
-  padding-top: 30px;
-  padding-bottom: 5px;
+  padding-top: 50px;
+  padding-bottom: 10px;
   text-align: center;
 }
 .card-list {
@@ -269,6 +269,10 @@ export default class HTMLService {
   width: 250px;
   padding: 10px;
   text-align: center;
+}
+.font-header {
+  font-size: 28pt;
+  font-weight: bold;
 }
 .font-large {
   font-size: 23pt;

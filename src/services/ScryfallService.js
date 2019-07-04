@@ -9,7 +9,7 @@ import startsWith from "lodash/startsWith";
 import humps from "lodash-humps";
 import * as queryString from "query-string";
 import request from "request-promise-native";
-import Card from "models/Card";
+import Card from "components/Card";
 import CacheTimeout from "utils/CacheTimeout";
 import DateFns from "utils/DateFns";
 import latinise from "utils/Latinise";

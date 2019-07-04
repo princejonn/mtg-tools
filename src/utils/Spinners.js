@@ -6,7 +6,17 @@ class Spinners {
   }
 
   /**
-   * @param {string} [text]
+   * @param {string} text
+   */
+  next(text) {
+    if (this._spinners.length) {
+      this.succeed();
+    }
+    this.start(text);
+  }
+
+  /**
+   * @param {string} text
    */
   start(text) {
     this._spinners.push(new OraSpinner(text));

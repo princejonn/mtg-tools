@@ -30,6 +30,7 @@ export default class CommanderDeck {
     this.typedRecommendation = null;
     this.cardsToAdd = null;
     this.cardsToRemove = null;
+    this.cardsToPurchase = null;
   }
 
   /**
@@ -49,7 +50,7 @@ export default class CommanderDeck {
       await this._sumCardTypes(this._types, card, data.tappedOut);
 
       card.isCommander = true;
-      card.setEDHRec(data.edhRec);
+      card.addEDHRec(data.edhRec);
       card.addTappedOut(data.tappedOut);
       await this._addCard(card);
     }
@@ -94,11 +95,11 @@ export default class CommanderDeck {
       const existingCard = find(this._cards, { id: card.id });
 
       if (existingCard) {
-        existingCard.setEDHRec(data.edhRec);
+        existingCard.addEDHRec(data.edhRec);
         continue;
       }
 
-      card.setEDHRec(data.edhRec);
+      card.addEDHRec(data.edhRec);
       await this._addCard(card);
     }
   }
@@ -141,6 +142,7 @@ export default class CommanderDeck {
     await this._setTypedRecommendation();
     await this._setCardsToAdd();
     await this._setCardsToRemove();
+    await this._setCardsToPurchase();
 
     this._isCalculated = true;
   }
@@ -191,6 +193,10 @@ export default class CommanderDeck {
 
   async _setCardsToRemove() {
     this.cardsToRemove = await this._getCardsTo("remove", true, SortBy.ASCENDING);
+  }
+
+  async _setCardsToPurchase() {
+    this.cardsToPurchase = [];
   }
 
   /**

@@ -1,14 +1,14 @@
 import includes from "lodash/includes";
-import Spinners from "../utils/Spinners";
-import ShareLinkService from "../services/ShareLinkService";
-import isObject from "lodash/isObject";
 import isString from "lodash/isString";
-import InquiryService from "../services/InquiryService";
-import ScryfallService from "../services/ScryfallService";
-import InventoryService from "../services/InventoryService";
-import TappedOutService from "../services/TappedOutService";
-import CommanderDeck from "../components/CommanderDeck";
-import ReporterService from "../services/ReporterService";
+import ImproveDeck from "components/ImproveDeck";
+import InquiryService from "services/InquiryService";
+import InventoryService from "services/InventoryService";
+import ReporterService from "services/ReporterService";
+import ScryfallService from "services/ScryfallService";
+import ShareLinkService from "services/ShareLinkService";
+import TappedOutService from "services/TappedOutService";
+import Spinners from "utils/Spinners";
+import isObject from "lodash/isObject";
 
 export default async (urls) => {
   const options = {
@@ -20,6 +20,8 @@ export default async (urls) => {
   let comparison = urls[1];
 
   try {
+    Spinners.start("preparing");
+
     if (!includes(url, "tappedout.net/mtg-decks/")) {
       throw new Error("url incorrect. only tappedout decks currently allowed");
     }
@@ -27,49 +29,46 @@ export default async (urls) => {
       throw new Error("comparison incorrect. only tappedout decks currently allowed");
     }
 
-    Spinners.start("preparing");
     const shareLink = await ShareLinkService.getOrSet(url);
     if (isObject(shareLink) && isString(shareLink.link)) {
       options.loginRequired = false;
       url = shareLink.link;
     }
-    Spinners.succeed();
 
     if (options.loginRequired) {
       options.account = await InquiryService.loginAccount();
+
+      Spinners.next("logging in");
+      await TappedOutService.login(options.account);
     }
 
-    Spinners.start("loading cache");
+    Spinners.next("loading cache");
     await ScryfallService.load();
-    Spinners.succeed();
 
-    Spinners.start("loading inventory");
+    Spinners.next("loading inventory");
     await InventoryService.load();
-    Spinners.succeed();
 
-    Spinners.start("finding commander");
-    const commander = await TappedOutService.getCommander(url, options.account);
-    Spinners.succeed();
+    Spinners.next("finding commander");
+    const commander = await TappedOutService.getCommander(url);
 
-    Spinners.start("finding commander deck");
-    const cmdDeck = await TappedOutService.getCommanderDeck(url, options.account);
-    Spinners.succeed();
+    Spinners.next("finding commander deck");
+    const cmdDeck = await TappedOutService.getDeck(url);
 
-    Spinners.start("finding comparison deck");
+    Spinners.next("finding comparison deck");
     const deck = await TappedOutService.getDeck(comparison);
     deck.setPosition({ position: 0 });
-    Spinners.succeed();
 
-    Spinners.start("finalizing deck");
-    const commanderDeck = new CommanderDeck();
-    await commanderDeck.addCommanderDeck(cmdDeck);
-    await commanderDeck.addTappedOutDeck(deck);
-    await commanderDeck.calculate();
+    Spinners.next("finalizing deck");
+    const improveDeck = new ImproveDeck();
+    await improveDeck.addCommanderDeck(cmdDeck);
+    await improveDeck.addTappedOutDeck(deck);
+    await improveDeck.calculate();
+
     Spinners.succeed();
 
     await ReporterService.buildDifferenceReport({
       commander,
-      commanderDeck,
+      improveDeck,
     });
   } catch (err) {
     Spinners.fail();

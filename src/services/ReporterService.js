@@ -5,56 +5,76 @@ import DateFns from "utils/DateFns";
 
 export default class ReporterService {
   /**
-   * @param {Commander} commander
-   * @param {CommanderDeck} commanderDeck
-   * @param {object} programOptions
+   * @param {CardMarketDeck} cardMarketDeck
    * @returns {Promise<void>}
    */
-  static async buildImproveReport({ commander, commanderDeck, ...programOptions }) {
-    const content = [];
+  static async buildCardMarketReport(cardMarketDeck) {
+    const cwd = path.join(process.env.PWD, "reports");
+    const now = DateFns.format(DateFns.get(), "YYYY-MM-DDTHH_mm_ss");
 
-    const quicker = ReporterService._getQuickCommand(`i ${commander.url}`, programOptions);
-    console.log(`\nto run this again - paste this:\n\n--> ${quicker}\n`);
+    if (!fs.existsSync(cwd)) {
+      fs.mkdirSync(cwd);
+    }
 
-    content.push(HTMLService.getQuickCommand(quicker));
-    content.push(HTMLService.getSuggestedCards(commanderDeck, 32));
-    content.push(HTMLService.getLeastPopularCards(commanderDeck, 24));
-    content.push(HTMLService.getCardsToAdd(commanderDeck));
-    content.push(HTMLService.getCardsToRemove(commanderDeck));
+    const file = path.join(cwd, `card-market-deck-list-${now}.txt`);
 
-    ReporterService._saveReport(commander, content, "improve");
+    for (const card of cardMarketDeck.cardsToPurchase) {
+      fs.appendFileSync(file, `${card.inventory.missing}x ${card.simpleName}\r\n`);
+    }
+
+    console.log(`\nPaste this deck list into card market: --> ${file}\n`);
   }
 
   /**
    * @param {Commander} commander
-   * @param {CommanderDeck} commanderDeck
+   * @param {ImproveDeck} improveDeck
    * @returns {Promise<void>}
    */
-  static async buildDifferenceReport({ commander, commanderDeck }) {
+  static async buildDifferenceReport({ commander, improveDeck }) {
     const content = [];
 
-    content.push(HTMLService.getSuggestedCards(commanderDeck, 100));
-    content.push(HTMLService.getLeastPopularCards(commanderDeck, 100));
+    content.push(HTMLService.getMostPopularCards(improveDeck, 100));
+    content.push(HTMLService.getLeastPopularCards(improveDeck, 100));
 
     ReporterService._saveReport(commander, content, "difference");
   }
 
   /**
    * @param {Commander} commander
-   * @param {CommanderDeck} commanderDeck
+   * @param {ImproveDeck} improveDeck
    * @param {object} programOptions
    * @returns {Promise<void>}
    */
-  static async buildRecommendReport({ commander, commanderDeck, ...programOptions }) {
+  static async buildImproveReport({ commander, improveDeck, ...programOptions }) {
+    const content = [];
+
+    const quicker = ReporterService._getQuickCommand(`i ${commander.url}`, programOptions);
+    console.log(`\nto run this again - paste this:\n\n--> ${quicker}\n`);
+
+    content.push(HTMLService.getQuickCommand(quicker));
+    content.push(HTMLService.getMostPopularCards(improveDeck, 32));
+    content.push(HTMLService.getLeastPopularCards(improveDeck, 24));
+    content.push(HTMLService.getCardsToAdd(improveDeck));
+    content.push(HTMLService.getCardsToRemove(improveDeck));
+
+    ReporterService._saveReport(commander, content, "improve");
+  }
+
+  /**
+   * @param {Commander} commander
+   * @param {RecommendDeck} recommendDeck
+   * @param {object} programOptions
+   * @returns {Promise<void>}
+   */
+  static async buildRecommendReport({ commander, recommendDeck, ...programOptions }) {
     const content = [];
 
     const quicker = ReporterService._getQuickCommand(`r "${commander.name}"`, programOptions);
     console.log(`\nTo run this again: --> ${quicker}\n`);
 
     content.push(HTMLService.getQuickCommand(quicker));
-    content.push(HTMLService.getTypedRecommendationDeckList(commander, commanderDeck));
-    content.push(HTMLService.getTypedRecommendation(commanderDeck));
-    content.push(HTMLService.getSuggestedCards(commanderDeck, 32));
+    content.push(HTMLService.getTypedRecommendationDeckList(commander, recommendDeck));
+    content.push(HTMLService.getTypedRecommendation(recommendDeck));
 
     ReporterService._saveReport(commander, content, "recommend");
   }
