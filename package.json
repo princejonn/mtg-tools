@@ -1,7 +1,6 @@
 {
   "name": "mtg-tools",
   "version": "0.2.4",
-  "main": "lib/index",
   "author": "jonn@jonn.nu",
   "description": "tools to help build MTG decks",
   "license": "MIT",
@@ -9,6 +8,7 @@
     "type": "git",
     "url": "git@github.com:princejonn/mtg-tools.git"
   },
+  "main": "lib/index",
   "bin": {
     "mtg-tools": "./lib/index.js"
   },

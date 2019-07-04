@@ -30,7 +30,7 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
   };
 
   try {
-    if (!includes(url, "https://tappedout.net/mtg-decks/")) {
+    if (!includes(url, "tappedout.net/mtg-decks/")) {
       throw new Error("url incorrect. only tappedout decks currently allowed");
     }
 
