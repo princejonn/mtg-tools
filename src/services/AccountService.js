@@ -15,6 +15,15 @@ class AccountService {
   }
 
   /**
+   * @param {string} username
+   * @param {string} password
+   * @returns {Promise<TappedOutAccount>}
+   */
+  async build(username, password) {
+    return new TappedOutAccount(username, password);
+  }
+
+  /**
    * @returns {Promise<TappedOutAccount>}
    */
   async get() {
@@ -31,7 +40,7 @@ class AccountService {
       return null;
     }
 
-    return new TappedOutAccount(username, password);
+    return this.build(username, password);
   }
 
   /**

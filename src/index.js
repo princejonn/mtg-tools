@@ -12,31 +12,15 @@ import recommend from "bin/recommend";
 import shareLinks from "bin/share-links";
 
 
-program
-  .command("card-market")
-  .alias("m")
-  .description("building a deck list of cards not in your inventory")
-  .arguments("<urls...>")
-
-  .action(async (urls) => {
-    await cardMarket(urls);
-  });
-
-
-program
-  .command("clear")
-  .alias("c")
-  .description("clearing all cached data")
-
-  .action(async () => {
-    await clear();
-  });
+//
+// Improving your deck
+//
 
 
 program
   .command("diff")
   .alias("d")
-  .description("comparing two decks diff")
+  .description("Compares two deck lists against each other. Outputting the difference in cards between the two. This way you can take your deck and compare it to competitive primer decks for instance.")
   .arguments("<urls...>")
 
   .action(async (urls) => {
@@ -47,7 +31,7 @@ program
 program
   .command("improve")
   .alias("i")
-  .description("improving your commander deck")
+  .description("Tries to find improvements for your current commander deck by walking through EDHRec, and the top 100 TappedOut deck lists for the same commander.")
   .arguments("<url>")
 
   .option("-t, --theme [theme]", "using edh-rec theme by number")
@@ -56,8 +40,6 @@ program
   .option("-e, --inventory [inventory]", "using only cards from the inventory")
   .option("-p, --top [top]", "using only top decks from tapped-out")
   .option("-c, --cards [cards]", "searching tapped-out for decks containing specific cards")
-
-  .option("-l, --login", "forcing program to use the login form")
 
   .action(async (url, cmd) => {
     await improve({
@@ -68,39 +50,14 @@ program
       inventory: cmd.inventory,
       top: cmd.top,
       cards: cmd.cards,
-      forceLogin: cmd.login,
     });
-  });
-
-
-program
-  .command("inventory")
-  .alias("e")
-  .description("loading your inventory into the database")
-  .arguments("<file>")
-
-  .option("-n, --name-key [nameKey]", "title for card name in csv")
-  .option("-a, --amount-key [amountKey]", "title for amount in csv")
-
-  .action(async (file, cmd) => {
-    await inventory(file, cmd.nameKey, cmd.amountKey);
-  });
-
-
-program
-  .command("login")
-  .alias("l")
-  .description("saving your TappedOut username and password to cache")
-
-  .action(async () => {
-    await login();
   });
 
 
 program
   .command("recommend")
   .alias("r")
-  .description("recommending a deck for your commander")
+  .description("Tries to create a good starting point for a commander. By inputting the name (remember using quotes), you will get a recommendation based on average types used, much in the same format as improve.")
   .arguments("<name>")
 
   .option("-t, --theme [theme]", "using edh-rec theme by number")
@@ -123,10 +80,60 @@ program
   });
 
 
+//
+// Utility
+//
+
+
+program
+  .command("card-market")
+  .alias("m")
+  .description("By using your inventory and the actual card amounts in your inventory, you can create a decklist for card market, which will contain only the cards you don't currently own, so that you can simply paste them into a wants list and move on from there.")
+  .arguments("<urls...>")
+
+  .action(async (urls) => {
+    await cardMarket(urls);
+  });
+
+
+program
+  .command("clear")
+  .alias("c")
+  .description("Clearing all cached data")
+
+  .action(async () => {
+    await clear();
+  });
+
+
+program
+  .command("inventory")
+  .alias("e")
+  .description("Imports your inventory and saves it to the local database so that you can create reports with information about whether or not you have the recommended card or not.")
+  .arguments("<file>")
+
+  .option("-n, --name-key [nameKey]", "title for card name in csv")
+  .option("-a, --amount-key [amountKey]", "title for amount in csv")
+
+  .action(async (file, cmd) => {
+    await inventory(file, cmd.nameKey, cmd.amountKey);
+  });
+
+
+program
+  .command("login")
+  .alias("l")
+  .description("Saves your TappedOut login information (thinly hashed) to the local database/cache. This is only security by obscurity and I do recommend you don't use this if you feel your information is sensitive.")
+
+  .action(async () => {
+    await login();
+  });
+
+
 program
   .command("share-links")
   .alias("s")
-  .description("saving all share links in cache to reduce the need for login")
+  .description("It is possible to create private share links in TappedOut by clicking the Export button. If you use this link with this command, you will have the share link saved in the local database, and then you only have to use the normal deck URL in the future.")
   .arguments("<urls...>")
 
   .action(async (urls) => {
@@ -134,21 +141,9 @@ program
   });
 
 
-program.on("--help", () => {
-  console.log("");
-  console.log("Examples:");
-  console.log("  $ mtg-tools i https://tapped-out-link -t 0");
-  console.log("  $ mtg-tools i https://tapped-out-link --theme 0");
-  console.log("  $ mtg-tools i https://tapped-out-link -g 0");
-  console.log("  $ mtg-tools i https://tapped-out-link --budget 4");
-  console.log("  $ mtg-tools i https://tapped-out-link -b 0");
-  console.log("  $ mtg-tools i https://tapped-out-link --hubs vampires,artifact");
-  console.log("");
-  console.log("  $ mtg-tools e /path/to/file.csv -n Name");
-  console.log("  $ mtg-tools e /path/to/file.csv --name Name");
-  console.log("  $ mtg-tools e /path/to/file.csv -a Quantity");
-  console.log("  $ mtg-tools e /path/to/file.csv --amount Quantity");
-});
+//
+// Setup
+//
 
 
 program

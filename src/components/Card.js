@@ -14,16 +14,11 @@ export default class Card {
     this.name = data.name;
     this.simpleName = null;
     this.type = null;
-    //this.colors = data.colors;
-    //this.manaCost = data.manaCost;
+    this.colors = data.colors;
+    this.cmc = data.cmc;
     this.uri = data.scryfallUri;
-
+    this.legal = data.legalities.commander === "legal";
     this.image = null;
-    if (data.imageUris) {
-      this.image = data.imageUris.normal;
-    } else if (data.cardFaces && data.cardFaces.length) {
-      this.image = data.cardFaces[0].imageUris.normal;
-    }
 
     this.isCommander = false;
     this.position = 0;
@@ -45,7 +40,8 @@ export default class Card {
       missing: 0,
     };
 
-    this._setSimpleName();
+    this._setImage(data);
+    this._setSimpleName(data);
     this._setType(data);
   }
 
@@ -127,10 +123,43 @@ export default class Card {
   //
 
   /**
+   * @param {object} data
    * @private
    */
-  _setSimpleName() {
-    let name = latinise(this.name);
+  _setImage(data) {
+    if (
+      data.imageUris &&
+      data.imageUris.border_crop
+    ) {
+      this.image = data.imageUris.border_crop;
+    } else if (
+      data.imageUris &&
+      data.imageUris.normal
+    ) {
+      this.image = data.imageUris.normal;
+    } else if (
+      data.cardFaces &&
+      data.cardFaces[0] &&
+      data.cardFaces[0].imageUris &&
+      data.cardFaces[0].imageUris.border_crop
+    ) {
+      this.image = data.cardFaces[0].imageUris.border_crop;
+    } else if (
+      data.cardFaces &&
+      data.cardFaces[0] &&
+      data.cardFaces[0].imageUris &&
+      data.cardFaces[0].imageUris.normal
+    ) {
+      this.image = data.cardFaces[0].imageUris.normal;
+    }
+  }
+
+  /**
+   * @param {object} data
+   * @private
+   */
+  _setSimpleName(data) {
+    let name = latinise(data.name);
 
     if (includes(name, "//")) {
       const split = name.split("//");

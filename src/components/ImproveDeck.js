@@ -21,6 +21,8 @@ export default class ImproveDeck extends BaseDeck {
     if (this._calculated.all) return;
 
     await super._calculatePercent();
+    await super._calculateCmc();
+    await super._calculateColors();
     await super._calculateTypes();
 
     await this._setMostPopularCards();

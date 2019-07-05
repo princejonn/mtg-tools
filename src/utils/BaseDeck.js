@@ -2,7 +2,10 @@ import cloneDeep from "lodash/cloneDeep";
 import filter from "lodash/filter";
 import find from "lodash/find";
 import includes from "lodash/includes";
+import isArray from "lodash/isArray";
+import isNumber from "lodash/isNumber";
 import isObject from "lodash/isObject";
+import isString from "lodash/isString";
 import InventoryService from "services/InventoryService";
 import ScryfallService from "services/ScryfallService";
 
@@ -13,14 +16,28 @@ export default class BaseDeck {
   constructor(options = {}) {
     this._cards = [];
     this._tappedOut = { added: 0 };
-    this._types = {
-      commander: {},
+
+    this._cmc = {
       average: {},
+      commander: {},
+      total: {},
+    };
+    this._colors = {
+      average: {},
+      commander: {},
+      total: {},
+    };
+    this._types = {
+      average: {},
+      commander: {},
       total: {},
       add: {},
       remove: {},
     };
+
     this._calculated = {
+      cmc: false,
+      colors: false,
       percent: false,
       types: false,
     };
@@ -94,18 +111,34 @@ export default class BaseDeck {
    * @returns {Promise<void>}
    * @protected
    */
+  async _calculateCmc() {
+    if (this._calculated.cmc) return;
+
+    this._averageFromPathTotal("_cmc");
+
+    this._calculated.cmc = true;
+  }
+
+  /**
+   * @returns {Promise<void>}
+   * @protected
+   */
+  async _calculateColors() {
+    if (this._calculated.colors) return;
+
+    this._averageFromPathTotal("_colors");
+
+    this._calculated.colors = true;
+  }
+
+  /**
+   * @returns {Promise<void>}
+   * @protected
+   */
   async _calculateTypes() {
     if (this._calculated.types) return;
 
-    for (const type in this._types.total) {
-      if (!this._types.total.hasOwnProperty(type)) continue;
-
-      if (!this._types.average[type]) {
-        this._types.average[type] = 0;
-      }
-
-      this._types.average[type] = Math.floor(this._types.total[type] / this._tappedOut.added);
-    }
+    this._averageFromPathTotal("_types");
 
     for (const type in this._types.average) {
       if (!this._types.average.hasOwnProperty(type)) continue;
@@ -204,6 +237,8 @@ export default class BaseDeck {
       const existingCard = find(this._cards, { id: data.id });
       const amount = await InventoryService.getAmount(data.id);
 
+      await this._addCmcAmount(card, data, isCommander);
+      await this._addColorsAmount(card, data, isCommander);
       await this._addTypesAmount(card, data, isCommander);
 
       if (existingCard) {
@@ -226,28 +261,93 @@ export default class BaseDeck {
 
   /**
    * @param {Card} card
-   * @param {Card} data
+   * @param {object} data
+   * @param {boolean} [isCommander]
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _addCmcAmount(card, data, isCommander) {
+    if (!isObject(data.tappedOut)) return;
+    if (!isNumber(card.cmc)) return;
+
+    const path = isCommander === true ? "commander" : "total";
+    const { cmc } = card;
+    const { tappedOut } = data;
+    const { amount } = tappedOut;
+    const key = `${cmc}`;
+
+    this._addKeyToPath(key, "_cmc");
+    this._cmc[path][key] += amount;
+  }
+
+  /**
+   * @param {Card} card
+   * @param {object} data
+   * @param {boolean} [isCommander]
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _addColorsAmount(card, data, isCommander) {
+    if (!isObject(data.tappedOut)) return;
+    if (!isArray(card.colors)) return;
+
+    const path = isCommander === true ? "commander" : "total";
+    const { colors } = card;
+    const { tappedOut } = data;
+    const { amount } = tappedOut;
+
+    for (const key of colors) {
+      this._addKeyToPath(key, "_colors");
+      this._colors[path][key] += amount;
+    }
+  }
+
+  /**
+   * @param {Card} card
+   * @param {object} data
    * @param {boolean} [isCommander]
    * @returns {Promise<void>}
    * @private
    */
   async _addTypesAmount(card, data, isCommander) {
     if (!isObject(data.tappedOut)) return;
+    if (!isString(card.type)) return;
 
+    const path = isCommander === true ? "commander" : "total";
     const { type } = card;
     const { tappedOut } = data;
     const { amount } = tappedOut;
+    const key = type;
 
-    const path = isCommander === true ? "commander" : "total";
+    this._addKeyToPath(key, "_types");
+    this._types[path][key] += amount;
+  }
 
-    if (!this._types.commander[type]) {
-      this._types.commander[type] = 0;
+  /**
+   * @param {string} key
+   * @param {string} path
+   * @private
+   */
+  _addKeyToPath(key, path) {
+    if (!this[path].average[key]) {
+      this[path].average[key] = 0;
     }
-
-    if (!this._types.total[type]) {
-      this._types.total[type] = 0;
+    if (!this[path].commander[key]) {
+      this[path].commander[key] = 0;
     }
+    if (!this[path].total[key]) {
+      this[path].total[key] = 0;
+    }
+  }
 
-    this._types[path][type] += amount;
+  /**
+   * @param {string} path
+   * @private
+   */
+  _averageFromPathTotal(path) {
+    for (const key in this[path].total) {
+      if (!this[path].total.hasOwnProperty(key)) continue;
+      this[path].average[key] = Math.floor(this[path].total[key] / this._tappedOut.added);
+    }
   }
 }

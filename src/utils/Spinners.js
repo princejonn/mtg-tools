@@ -44,6 +44,23 @@ class Spinners {
     }
     this._spinners = [];
   }
+
+  /**
+   * @param {number} number
+   */
+  setTotalTasks(number) {
+    for (const spinner of this._spinners) {
+      spinner.setTotalTasks(number);
+    }
+  }
+
+  /**
+   */
+  startTask() {
+    for (const spinner of this._spinners) {
+      spinner.startTask();
+    }
+  }
 }
 
 const spinners = new Spinners();

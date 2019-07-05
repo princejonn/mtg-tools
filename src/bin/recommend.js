@@ -29,6 +29,8 @@ export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
     Spinners.next("loading inventory");
     await InventoryService.load();
 
+    Spinners.succeed();
+
     const commander = new Commander({ name });
 
     const themeChoice = await InquiryService.selectTheme(commander, theme);
@@ -38,7 +40,7 @@ export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
     const hubsChoice = await InquiryService.selectHubs(hubs);
     const cardsChoice = await InquiryService.selectCards(cards);
 
-    Spinners.next("finding edh-recommendation");
+    Spinners.start("finding edh-recommendation");
     const recommendation = await EDHRecService.getRecommendation(themeChoice);
 
     Spinners.next("finding tapped-out links");
@@ -51,7 +53,9 @@ export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
     });
 
     Spinners.next("finding tapped-out decks");
+    Spinners.setTotalTasks(linkList.links.length);
     for (const link of linkList.links) {
+      Spinners.startTask();
       const { url, position } = link;
       const deck = await TappedOutService.getDeck(url);
       if (!deck) continue;

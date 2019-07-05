@@ -19,10 +19,9 @@ import Spinners from "utils/Spinners";
  * @param {string} inventory
  * @param {string} top
  * @param {string} cards
- * @param {boolean} forceLogin
  * @returns {Promise<void>}
  */
-export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLogin }) => {
+export default async ({ url, theme, budget, hubs, inventory, top, cards }) => {
   const decks = [];
   const options = {
     loginRequired: true,
@@ -44,7 +43,7 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
     }
 
     if (options.loginRequired) {
-      options.account = await InquiryService.loginAccount(forceLogin);
+      options.account = await InquiryService.loginAccount();
 
       Spinners.next("logging in");
       await TappedOutService.login(options.account);
@@ -59,6 +58,8 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
     Spinners.next("finding commander");
     const commander = await TappedOutService.getCommander(url);
 
+    Spinners.succeed();
+
     const themeChoice = await InquiryService.selectTheme(commander, theme);
     const budgetChoice = await InquiryService.selectBudget(budget);
     const inventoryChoice = await InquiryService.selectInventory(inventory);
@@ -66,7 +67,7 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
     const hubsChoice = await InquiryService.selectHubs(hubs);
     const cardsChoice = await InquiryService.selectCards(cards);
 
-    Spinners.next("finding commander deck");
+    Spinners.start("finding commander deck");
     const cmdDeck = await TappedOutService.getDeck(url);
 
     Spinners.next("finding edh-recommendation");
@@ -82,7 +83,9 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards, forceLo
     });
 
     Spinners.next("finding tapped-out decks");
+    Spinners.setTotalTasks(linkList.links.length);
     for (const link of linkList.links) {
+      Spinners.startTask();
       const { url, position } = link;
       const deck = await TappedOutService.getDeck(url);
       if (!deck) continue;

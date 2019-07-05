@@ -34,15 +34,14 @@ const loginForm = [
 
 export default class InquiryService {
   /**
-   * @param {boolean} forceLogin
+   * @param {boolean} saveLogin
    * @returns {Promise<TappedOutAccount>}
    */
-  static async loginAccount(forceLogin = false) {
-    if (!forceLogin) {
-      const exists = await AccountService.get();
-      if (exists) {
-        return exists;
-      }
+  static async loginAccount(saveLogin = false) {
+    const exists = await AccountService.get();
+
+    if (exists) {
+      return exists;
     }
 
     const { username, password } = await inquirer.prompt(loginForm);
@@ -54,14 +53,11 @@ export default class InquiryService {
       throw new Error("password undefined");
     }
 
-    await AccountService.save(username, password);
-    const account = await AccountService.get();
-
-    if (!account) {
-      throw new Error("account service could not properly save your account");
+    if (saveLogin) {
+      await AccountService.save(username, password);
     }
 
-    return account;
+    return AccountService.build(username, password);
   }
 
   /**
