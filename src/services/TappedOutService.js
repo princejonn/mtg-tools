@@ -7,6 +7,7 @@ import BasePage from "utils/BasePage";
 import CacheTimeout from "utils/CacheTimeout";
 import NeDB, { Collection } from "utils/NeDB";
 import RateLimit from "utils/RateLimit";
+import Spinners from "utils/Spinners";
 
 const Selector = {
   USERNAME: "input#id_username",
@@ -135,11 +136,13 @@ class TappedOutService extends BasePage {
       await this._hubs.remove({ name });
     }
 
+    Spinners.next("fetching hubs");
     const data = await this._buildHubs();
     await this._hubs.insert({
       name,
       list: data,
     });
+    Spinners.succeed();
 
     return data;
   }
@@ -151,6 +154,7 @@ class TappedOutService extends BasePage {
   async login(account) {
     if (this._loggedIn) return;
 
+    Spinners.next("logging in");
     await super._init();
 
     await RateLimit.tappedOut();
@@ -163,6 +167,7 @@ class TappedOutService extends BasePage {
     await super.click(Selector.SUBMIT);
     await super.waitFor(Selector.LOGGED_IN);
 
+    Spinners.succeed();
     this._loggedIn = true;
   }
 
@@ -250,7 +255,7 @@ class TappedOutService extends BasePage {
         });
 
         await super.click(Selector.SEARCH_FILTER_BUTTON);
-        await this.waitFor(Selector.DECK_LINK);
+        await this.waitFor(Selector.DECK_LINK, 5000);
         const elements = await this.findAll(Selector.DECK_LINK);
 
         for (const element of elements) {

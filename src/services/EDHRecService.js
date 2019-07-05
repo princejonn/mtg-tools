@@ -5,6 +5,7 @@ import BasePage from "utils/BasePage";
 import CacheTimeout from "utils/CacheTimeout";
 import RateLimit from "utils/RateLimit";
 import NeDB, { Collection } from "utils/NeDB";
+import Spinners from "utils/Spinners";
 
 const Selector = {
   CARD_ELEMENT: "div#cardlists div.nw",
@@ -33,11 +34,13 @@ class EDHRecService extends BasePage {
       await this._themes.remove({ commander: commander.queryString });
     }
 
+    Spinners.next("fetching themes");
     const data = await this._buildThemes(commander);
     await this._themes.insert({
       commander: commander.queryString,
       themes: data,
     });
+    Spinners.succeed();
 
     return data;
   }

@@ -1,5 +1,5 @@
 import ora from "ora";
-import { differenceInMilliseconds, differenceInSeconds } from "date-fns";
+import { differenceInMilliseconds, differenceInMinutes, differenceInSeconds } from "date-fns";
 
 export default class OraSpinner {
   /**
@@ -36,9 +36,8 @@ export default class OraSpinner {
       this._text.text = text;
     }
 
-    const time = differenceInSeconds(new Date(), this._date);
-
-    this._spinner.succeed(`${this._text.text} (${time}s)`);
+    const time = this._getEndTime();
+    this._spinner.succeed(`${this._text.text} ${time}`);
   }
 
   /**
@@ -49,9 +48,8 @@ export default class OraSpinner {
       this._text.text = text;
     }
 
-    const time = differenceInMilliseconds(new Date(), this._date);
-
-    this._spinner.fail(`${this._text.text} (${time}ms)`);
+    const time = this._getEndTime();
+    this._spinner.fail(`${this._text.text} ${time}`);
   }
 
   /**
@@ -69,11 +67,29 @@ export default class OraSpinner {
     this._render();
   }
 
+  /**
+   * @private
+   */
   _render() {
     if (this._text.totalTasks > 1) {
       this._spinner.text = `${this._text.text} [${this._text.currentTask}/${this._text.totalTasks}]`;
     } else {
       this._spinner.text = this._text.text;
     }
+  }
+
+  _getEndTime() {
+    const mm = differenceInMinutes(new Date(), this._date);
+    if (mm > 0) {
+      return `(${mm}m)`;
+    }
+
+    const ss = differenceInSeconds(new Date(), this._date);
+    if (ss > 0) {
+      return `(${ss}s)`;
+    }
+
+    const ms = differenceInMilliseconds(new Date(), this._date);
+    return `(${ms}ms)`;
   }
 }

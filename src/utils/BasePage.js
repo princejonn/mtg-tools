@@ -61,10 +61,11 @@ export default class BasePage {
 
   /**
    * @param {string} selector
+   * @param {number} [timeout]
    * @returns {Promise<void>}
    */
-  async waitFor(selector) {
-    await this._manager.page.waitForSelector(selector, { visible: true });
+  async waitFor(selector, timeout = 30000) {
+    await this._manager.page.waitForSelector(selector, { timeout, visible: true });
   }
 
   /**

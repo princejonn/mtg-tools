@@ -132,7 +132,7 @@ export default class HTMLService {
       const title = key.replace(/\_/g, " ").toUpperCase();
 
       content.push(`<div class="deck-list-type">`);
-      content.push(`<p class="deck-list-title deck-list-name font-gray unselectable" data-deck-list-title="${title}"></p>`);
+      content.push(`<p class="deck-list-title deck-list-name font-gray unselectable" data-deck-list-title="${title} (${cards.length})"></p>`);
 
       for (const card of cards) {
         const fontColor = card.inventory.amount > 0 ? "green" : "red";
@@ -167,8 +167,7 @@ export default class HTMLService {
    */
   static _buildCardHTML(card) {
     const borderColor = card.inventory.amount > 0 ? "green" : "red";
-    return (`
-<div class="card-container" data-id="${card.id}">
+    return (`<div class="card-container" data-id="${card.id}">
   <div class="card-name">1x ${latinise(card.name)}</div>
   <div class="card-image">
     <a href="${card.uri}" target="_blank">
@@ -187,8 +186,7 @@ export default class HTMLService {
       <div class="card-data-row font-small">Inventory <span>${card.inventory.amount}</span></div>
     </div>
   </div>
-</div>
-`);
+</div>`);
   }
 
   /**
