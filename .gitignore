@@ -1,12 +1,9 @@
 # Generated
 /cache
-/coverage
 /db
-/dist
 /lib
 /node_modules
 /reports
-/jspm_packages
 
 # NPM
 .npmrc
