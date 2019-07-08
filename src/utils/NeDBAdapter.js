@@ -1,6 +1,8 @@
+import os from "os";
 import Datastore from "nedb";
 import DateFns from "utils/DateFns";
 import Collection from "enums/Collection";
+import path from "path";
 
 class NeDBAdapter {
   constructor() {
@@ -11,7 +13,7 @@ class NeDBAdapter {
       if (!Collection.hasOwnProperty(key)) continue;
 
       const collection = Collection[key];
-      const file = `db/${collection}.db`;
+      const file = path.join(os.homedir(), ".mtg-tools", "db", `${collection}.db`);
 
       this._files[collection] = file;
       this._db[collection] = new Datastore({

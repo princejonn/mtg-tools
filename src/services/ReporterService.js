@@ -1,3 +1,4 @@
+import os from "os";
 import fs from "fs";
 import path from "path";
 import HTMLService from "services/HTMLService";
@@ -9,7 +10,7 @@ export default class ReporterService {
    * @returns {Promise<void>}
    */
   static async buildCardMarketReport(cardMarketDeck) {
-    const cwd = path.join(process.cwd(), "reports");
+    const cwd = path.join(os.homedir(), ".mtg-tools", "reports");
     const now = DateFns.format(DateFns.get(), "YYYY-MM-DDTHH_mm_ss");
 
     if (!fs.existsSync(cwd)) {
@@ -86,7 +87,7 @@ export default class ReporterService {
    * @private
    */
   static _getFile(commander, reportType) {
-    const cwd = path.join(process.cwd(), "reports");
+    const cwd = path.join(os.homedir(), ".mtg-tools", "reports");
     const now = DateFns.format(DateFns.get(), "YYYY-MM-DDTHH_mm_ss");
 
     if (!fs.existsSync(cwd)) {

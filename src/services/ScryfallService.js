@@ -1,5 +1,6 @@
 /* eslint global-require: 0 */
 
+import os from "os";
 import fs from "fs";
 import path from "path";
 import download from "download";
@@ -124,11 +125,12 @@ class ScryfallService {
 
     const fileLink = "https://archive.scryfall.com/json/";
     const fileName = "scryfall-default-cards.json";
+    const fileDir = path.join(os.homedir(), ".mtg-tools", "cache");
 
-    await download(`${fileLink}${fileName}`, "cache");
+    await download(`${fileLink}${fileName}`, fileDir);
 
     const downloaded = DateFns.format();
-    const file = path.join(process.cwd(), "cache", fileName);
+    const file = path.join(fileDir, fileName);
 
     if (info) {
       await this._scryfall.update({ name }, { downloaded, file });

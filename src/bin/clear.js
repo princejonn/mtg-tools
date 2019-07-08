@@ -1,3 +1,4 @@
+import os from "os";
 import fs from "fs";
 import path from "path";
 import Spinners from "utils/Spinners";
@@ -6,9 +7,9 @@ export default () => {
   try {
     Spinners.start("clearing cache");
 
-    fs.unlinkSync(path.join(process.cwd(), "cache"));
-    fs.unlinkSync(path.join(process.cwd(), "db"));
-    fs.unlinkSync(path.join(process.cwd(), "reports"));
+    fs.unlinkSync(path.join(os.homedir(), ".mtg-tools", "cache"));
+    fs.unlinkSync(path.join(os.homedir(), ".mtg-tools", "db"));
+    fs.unlinkSync(path.join(os.homedir(), ".mtg-tools", "reports"));
 
     Spinners.succeed();
   } catch (err) {
