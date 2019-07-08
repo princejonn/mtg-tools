@@ -9,7 +9,7 @@ export default class ReporterService {
    * @returns {Promise<void>}
    */
   static async buildCardMarketReport(cardMarketDeck) {
-    const cwd = path.join(process.env.PWD, "reports");
+    const cwd = path.join(process.cwd(), "reports");
     const now = DateFns.format(DateFns.get(), "YYYY-MM-DDTHH_mm_ss");
 
     if (!fs.existsSync(cwd)) {
@@ -86,7 +86,7 @@ export default class ReporterService {
    * @private
    */
   static _getFile(commander, reportType) {
-    const cwd = path.join(process.env.PWD, "reports");
+    const cwd = path.join(process.cwd(), "reports");
     const now = DateFns.format(DateFns.get(), "YYYY-MM-DDTHH_mm_ss");
 
     if (!fs.existsSync(cwd)) {

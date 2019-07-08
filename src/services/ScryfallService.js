@@ -128,7 +128,7 @@ class ScryfallService {
     await download(`${fileLink}${fileName}`, "cache");
 
     const downloaded = DateFns.format();
-    const file = path.join(process.env.PWD, "cache", fileName);
+    const file = path.join(process.cwd(), "cache", fileName);
 
     if (info) {
       await this._scryfall.update({ name }, { downloaded, file });

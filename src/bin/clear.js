@@ -6,9 +6,9 @@ export default () => {
   try {
     Spinners.start("clearing cache");
 
-    fs.unlinkSync(path.join(process.env.PWD, "cache"));
-    fs.unlinkSync(path.join(process.env.PWD, "db"));
-    fs.unlinkSync(path.join(process.env.PWD, "reports"));
+    fs.unlinkSync(path.join(process.cwd(), "cache"));
+    fs.unlinkSync(path.join(process.cwd(), "db"));
+    fs.unlinkSync(path.join(process.cwd(), "reports"));
 
     Spinners.succeed();
   } catch (err) {
