@@ -1,4 +1,5 @@
 import includes from "lodash/includes";
+import isObject from "lodash/isObject";
 import isString from "lodash/isString";
 import CardMarketDeck from "components/CardMarketDeck";
 import InquiryService from "services/InquiryService";
@@ -27,7 +28,7 @@ export default async (urls) => {
 
       const shareLink = await ShareLinkService.getOrSet(url);
 
-      if (isString(shareLink.link)) {
+      if (isObject(shareLink) && isString(shareLink.link)) {
         links.push(shareLink.link);
       } else {
         links.push(url);
@@ -50,7 +51,7 @@ export default async (urls) => {
 
     Spinners.next("finding decks");
     for (const url of links) {
-      const deck = await TappedOutService.getDeck(url);
+      const deck = await TappedOutService.getDeck(url, false);
       if (!deck) continue;
       decks.push(deck);
     }

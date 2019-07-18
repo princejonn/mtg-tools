@@ -23,7 +23,6 @@ export default async ({ name, theme, budget, hubs, inventory, top, cards }) => {
 
   try {
     Spinners.start("loading cache");
-
     await ScryfallService.load();
 
     Spinners.next("loading inventory");

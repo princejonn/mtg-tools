@@ -3,9 +3,9 @@ export default class TappedOutDeck {
    * @param {{url: string, cards: Array}} data
    */
   constructor(data) {
-    this.url = data.url;
     this.cards = data.cards;
     this.position = 0;
+    this.url = data.url;
   }
 
   /**

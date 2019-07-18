@@ -5,8 +5,6 @@ export default class CardMarketDeck extends BaseDeck {
   constructor(options = {}) {
     super(options);
 
-    this._calculated.all = false;
-
     this.cardsToPurchase = null;
   }
 

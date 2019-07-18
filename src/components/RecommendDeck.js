@@ -5,8 +5,6 @@ export default class RecommendDeck extends BaseDeck {
   constructor(options = {}) {
     super(options);
 
-    this._calculated.all = false;
-
     this.typedRecommendation = null;
   }
 

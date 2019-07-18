@@ -1,3 +1,4 @@
+import flatten from "lodash/flatten";
 import Commander from "models/Commander";
 import TappedOutDeck from "models/TappedOutDeck";
 import TappedOutLinkList from "models/TappedOutLinkList";
@@ -21,6 +22,7 @@ const Selector = {
   HUB: "#id_hubs option",
   SEARCH_FILTER_BUTTON: "input[value='Filter results']",
   DECK_LINK: "h3.deck-wide-header a",
+  DECK_CHART: "#combined-chart",
   CARD_LIST: "div.well div.board-container",
   MEMBER: "ul.boardlist > li.member",
   CARD: "a.board",
@@ -37,6 +39,7 @@ class TappedOutService extends BasePage {
     this._links = new NeDB(Collection.LINKS);
     this._decks = new NeDB(Collection.DECKS);
     this._searchUrl = "https://tappedout.net/mtg-decks/search/";
+    this._maxPages = 10;
   }
 
   /**
@@ -91,7 +94,7 @@ class TappedOutService extends BasePage {
 
     if (cached && timeout.isOK(cached.created)) {
       return new TappedOutLinkList(cached);
-    } if (cached && !timeout.isOK(cached.created)) {
+    } else if (cached && !timeout.isOK(cached.created)) {
       await this._links.remove({ commander: commander.queryString });
     }
 
@@ -102,10 +105,30 @@ class TappedOutService extends BasePage {
   }
 
   /**
+   * @returns {Promise<TappedOutLinkList>}
+   */
+  async getTopLinks() {
+    const timeout = new CacheTimeout({ minutes: 21 });
+    const cached = await this._links.find({ name: "top-links" });
+
+    if (cached && timeout.isOK(cached.created)) {
+      return new TappedOutLinkList(cached);
+    } else if (cached && !timeout.isOK(cached.created)) {
+      await this._links.remove({ name: "top-links" });
+    }
+
+    const data = await this._buildTopLinks();
+    await this._links.insert(data);
+
+    return new TappedOutLinkList(data);
+  }
+
+  /**
    * @param {string} url
+   * @param {boolean} cacheDeck
    * @returns {Promise<TappedOutDeck>}
    */
-  async getDeck(url) {
+  async getDeck(url, cacheDeck = true) {
     const timeout = new CacheTimeout({ days: 7 });
     const cached = await this._decks.find({ url });
 
@@ -116,8 +139,10 @@ class TappedOutService extends BasePage {
     }
 
     const data = await this._buildDeck(url);
-    if (data.cards.length > 100) return null;
-    await this._decks.insert(data);
+
+    if (cacheDeck) {
+      await this._decks.insert(data);
+    }
 
     return new TappedOutDeck(data);
   }
@@ -194,7 +219,9 @@ class TappedOutService extends BasePage {
       waitForSelector: Selector.CARD,
     });
 
+    await super.waitFor(Selector.COMMANDER);
     await super.click(Selector.COMMANDER);
+
     const element = await super.find(Selector.COMMANDER_NAME);
 
     let name = await super.getText(element);
@@ -217,15 +244,14 @@ class TappedOutService extends BasePage {
   async _buildSimilarLinks({ commander, budget, top, hubs, cards }) {
     await super._init();
 
-    const maxPages = 5;
     const baseUrl = `${this._searchUrl}?q=&format=edh&general=${commander.queryString}&o=-rating&submit=Filter+results`;
-    const links = [];
 
+    let links = [];
     let page = 1;
     let position = 1;
 
-    while (page <= maxPages) {
-      let searchUrl = `${baseUrl}`;
+    while (page <= this._maxPages) {
+      let searchUrl = `${baseUrl}&p=${page}&page=${page}`;
 
       if (budget.price > 0) {
         searchUrl += `&price_0=&price_1=${budget.price}`;
@@ -245,29 +271,10 @@ class TappedOutService extends BasePage {
         searchUrl += `&cards=${cards}`;
       }
 
-      searchUrl += `&p=${page}&page=${page}`;
+      const result = await this._getLinksOnPage(searchUrl, position);
 
-      try {
-        await RateLimit.tappedOut();
-        await super.goto({
-          url: searchUrl,
-          waitForSelector: Selector.SEARCH_FILTER_BUTTON,
-        });
-
-        await super.click(Selector.SEARCH_FILTER_BUTTON);
-        await this.waitFor(Selector.DECK_LINK, 5000);
-        const elements = await this.findAll(Selector.DECK_LINK);
-
-        for (const element of elements) {
-          const href = await super.getAttribute(element, "href");
-          const url = `https://tappedout.net${href}?cat=type&sort=name`;
-          links.push({ position, url });
-          position += 1;
-        }
-      } catch (err) {
-        // do nothing
-      }
-
+      links = flatten([ ...links, ...result.links ]);
+      position = result.position;
       page += 1;
     }
 
@@ -279,6 +286,77 @@ class TappedOutService extends BasePage {
       cards,
       links,
     };
+  }
+
+  /**
+   * @returns {Promise<{name: string, links: Array<string>}>}
+   * @private
+   */
+  async _buildTopLinks() {
+    await super._init();
+
+    const baseUrl = `${this._searchUrl}?q=&format=edh&price_0=&price_1=&o=-rating&submit=Filter+results`;
+    const colours = [
+      "R", // red
+      "G", // green
+      "U", // blue
+      "W", // white
+      "B", // black
+    ];
+
+    let links = [];
+
+    for (const colour of colours) {
+      let page = 1;
+      let position = 1;
+
+      while (page <= this._maxPages) {
+        const searchUrl = `${baseUrl}&color=${colour}&p=${page}&page=${page}`;
+        const result = await this._getLinksOnPage(searchUrl, position);
+
+        links = flatten([ ...links, ...result.links ]);
+        position = result.position;
+        page += 1;
+      }
+    }
+
+    return {
+      name: "top-links",
+      links,
+    };
+  }
+
+  /**
+   * @param {string} pageUrl
+   * @param {number} position
+   * @returns {Promise<{links: Array<string>, position: number}>}
+   * @private
+   */
+  async _getLinksOnPage(pageUrl, position) {
+    const links = [];
+
+    try {
+      await RateLimit.tappedOut();
+      await super.goto({
+        url: pageUrl,
+        waitForSelector: Selector.SEARCH_FILTER_BUTTON,
+      });
+
+      await super.click(Selector.SEARCH_FILTER_BUTTON);
+      await this.waitFor(Selector.DECK_LINK, 5000);
+      const elements = await this.findAll(Selector.DECK_LINK);
+
+      for (const element of elements) {
+        const href = await super.getAttribute(element, "href");
+        const url = `https://tappedout.net${href}?cat=type&sort=name`;
+        links.push({ position, url });
+        position += 1;
+      }
+    } catch (err) {
+      // do nothing
+    }
+
+    return { links, position };
   }
 
   /**
@@ -314,17 +392,17 @@ class TappedOutService extends BasePage {
     await super._init();
 
     const cards = [];
-    let retry = 0;
+    let tries = 1;
 
-    while (retry < 4) {
+    while (tries <= 3) {
       try {
         await RateLimit.tappedOut();
         await super.goto({
           url,
-          waitForSelector: Selector.CARD,
+          waitForSelector: Selector.DECK_CHART,
         });
 
-        const parents = await super.findAll(Selector.CARD_LIST);
+        const parents = await super.findAll(Selector.CARD_LIST, 5000);
         const mainBoard = parents[0];
         const cardItems = await mainBoard.$$(Selector.MEMBER);
 
@@ -356,11 +434,11 @@ class TappedOutService extends BasePage {
         return { url, cards };
       } catch (err) {
         await TappedOutService._removeShareLink(url);
-        retry += 1;
+        tries += 1;
       }
     }
 
-    return null;
+    return { url, cards: [] };
   }
 
   /**

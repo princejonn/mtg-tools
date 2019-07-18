@@ -7,12 +7,13 @@ export default class BasePage {
   }
 
   /**
+   * @param {boolean} [headless]
    * @returns {Promise<void>}
    * @protected
    */
-  async _init() {
+  async _init(headless) {
     if (this._initialized) return;
-    await this._manager.init();
+    await this._manager.init(headless);
     this._initialized = true;
   }
 
@@ -35,10 +36,11 @@ export default class BasePage {
 
   /**
    * @param {string} selector
+   * @param {number} [timeout]
    * @returns {Promise<Array<Puppeteer.ElementHandle>>}
    */
-  async findAll(selector) {
-    await this.waitFor(selector);
+  async findAll(selector, timeout) {
+    await this.waitFor(selector, timeout);
     return this._manager.page.$$(selector);
   }
 

@@ -5,8 +5,6 @@ export default class ImproveDeck extends BaseDeck {
   constructor(options = {}) {
     super(options);
 
-    this._calculated.all = false;
-
     this.mostPopularCards = null;
     this.leastPopularCards = null;
     this.cardsToAdd = null;

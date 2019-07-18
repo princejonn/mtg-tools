@@ -15,7 +15,10 @@ export default class BaseDeck {
    */
   constructor(options = {}) {
     this._cards = [];
-    this._tappedOut = { added: 0 };
+    this._tappedOut = {
+      added: 0,
+      decks: [],
+    };
 
     this._cmc = {
       average: {},
@@ -36,6 +39,7 @@ export default class BaseDeck {
     };
 
     this._calculated = {
+      all: false,
       cmc: false,
       colors: false,
       percent: false,
@@ -75,8 +79,11 @@ export default class BaseDeck {
    * @returns {Promise<void>}
    */
   async addTappedOutDeck(tappedOutDeck) {
+    if (!tappedOutDeck.cards || !tappedOutDeck.cards.length) return;
+
     const { cards, position } = tappedOutDeck;
     await this._addCards({ cards, position });
+    this._tappedOut.decks.push(tappedOutDeck);
     this._tappedOut.added += 1;
   }
 

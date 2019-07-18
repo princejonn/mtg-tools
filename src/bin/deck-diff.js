@@ -52,10 +52,10 @@ export default async (urls) => {
     const commander = await TappedOutService.getCommander(url);
 
     Spinners.next("finding commander deck");
-    const cmdDeck = await TappedOutService.getDeck(url);
+    const cmdDeck = await TappedOutService.getDeck(url, false);
 
     Spinners.next("finding comparison deck");
-    const deck = await TappedOutService.getDeck(comparison);
+    const deck = await TappedOutService.getDeck(comparison, false);
     deck.setPosition({ position: 0 });
 
     Spinners.next("finalizing deck");

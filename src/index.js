@@ -2,6 +2,7 @@
 
 import program from "commander";
 import packageJson from "#/package.json";
+import bestInventoryDeck from "bin/best-inventory-deck";
 import cardMarket from "bin/card-market";
 import clear from "bin/clear";
 import deckDiff from "bin/deck-diff";
@@ -16,6 +17,15 @@ import shareLinks from "bin/share-links";
 // Improving your deck
 //
 
+
+program
+  .command("best-inventory")
+  .alias("b")
+  .description("Compares the top 200 decks to your inventory. Returns the deck in which you have most cards available already.")
+
+  .action(async () => {
+    await bestInventoryDeck();
+  });
 
 program
   .command("diff")

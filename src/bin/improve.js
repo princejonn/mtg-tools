@@ -68,7 +68,7 @@ export default async ({ url, theme, budget, hubs, inventory, top, cards }) => {
     const cardsChoice = await InquiryService.selectCards(cards);
 
     Spinners.start("finding commander deck");
-    const cmdDeck = await TappedOutService.getDeck(url);
+    const cmdDeck = await TappedOutService.getDeck(url, false);
 
     Spinners.next("finding edh-recommendation");
     const recommendation = await EDHRecService.getRecommendation(themeChoice);

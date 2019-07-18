@@ -47,6 +47,21 @@ export default class PuppeteerManager {
     }, element);
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
+  async interceptImages() {
+    await this.page.setRequestInterception(true);
+
+    this.page.on("request", request => {
+      if (request.resourceType() === "image") {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
+  }
+
   destroy() {
     if (!this.browser) return;
     this.browser.close();
