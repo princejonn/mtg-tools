@@ -21,7 +21,7 @@ import shareLinks from "bin/share-links";
 program
   .command("best-inventory")
   .alias("b")
-  .description("Compares the top 200 decks to your inventory. Returns the deck in which you have most cards available already.")
+  .description("Compares your inventory to all top decks and returns where you have most owned cards.")
 
   .action(async () => {
     await bestInventoryDeck();
@@ -30,7 +30,7 @@ program
 program
   .command("diff")
   .alias("d")
-  .description("Compares two deck lists against each other. Outputting the difference in cards between the two. This way you can take your deck and compare it to competitive primer decks for instance.")
+  .description("Showing difference in cards between two decks.")
   .arguments("<urls...>")
 
   .action(async (urls) => {
@@ -41,7 +41,7 @@ program
 program
   .command("improve")
   .alias("i")
-  .description("Tries to find improvements for your current commander deck by walking through EDHRec, and the top 100 TappedOut deck lists for the same commander.")
+  .description("Finds card improvements to your existing deck.")
   .arguments("<url>")
 
   .option("-t, --theme [theme]", "using edh-rec theme by number")
@@ -67,7 +67,7 @@ program
 program
   .command("recommend")
   .alias("r")
-  .description("Tries to create a good starting point for a commander. By inputting the name (remember using quotes), you will get a recommendation based on average types used, much in the same format as improve.")
+  .description("Creates a starting recommendation for a commander to build on.")
   .arguments("<name>")
 
   .option("-t, --theme [theme]", "using edh-rec theme by number")
@@ -98,7 +98,7 @@ program
 program
   .command("card-market")
   .alias("m")
-  .description("By using your inventory and the actual card amounts in your inventory, you can create a decklist for card market, which will contain only the cards you don't currently own, so that you can simply paste them into a wants list and move on from there.")
+  .description("Returns a deck/shopping list based on your inventory and the input.")
   .arguments("<urls...>")
 
   .action(async (urls) => {
@@ -119,7 +119,7 @@ program
 program
   .command("inventory")
   .alias("e")
-  .description("Imports your inventory and saves it to the local database so that you can create reports with information about whether or not you have the recommended card or not.")
+  .description("Saves your inventory to database.")
   .arguments("<file>")
 
   .option("-n, --name-key [nameKey]", "title for card name in csv")
@@ -133,7 +133,7 @@ program
 program
   .command("login")
   .alias("l")
-  .description("Saves your TappedOut login information (thinly hashed) to the local database/cache. This is only security by obscurity and I do recommend you don't use this if you feel your information is sensitive.")
+  .description("Saves your tapped out login information (hashed) to database.")
 
   .action(async () => {
     await login();
@@ -143,7 +143,7 @@ program
 program
   .command("share-links")
   .alias("s")
-  .description("It is possible to create private share links in TappedOut by clicking the Export button. If you use this link with this command, you will have the share link saved in the local database, and then you only have to use the normal deck URL in the future.")
+  .description("Saves your tapped out share links so that you can use the normal URL but still use the share link for the tool.")
   .arguments("<urls...>")
 
   .action(async (urls) => {

@@ -4,9 +4,11 @@ import AES from "crypto-js/aes";
 import encUTF8 from "crypto-js/enc-utf8";
 import NeDB, { Collection } from "utils/NeDB";
 import TappedOutAccount from "models/TappedOutAccount";
+import Logger from "utils/Logger";
 
 class AccountService {
   constructor() {
+    this._logger = Logger.getContextLogger("account-service");
     this._db = new NeDB(Collection.ACCOUNTS);
     this._name = "user";
     this._secret = "secret";
@@ -20,6 +22,7 @@ class AccountService {
    * @returns {Promise<TappedOutAccount>}
    */
   async build(username, password) {
+    this._logger.debug("building username", username);
     return new TappedOutAccount(username, password);
   }
 
@@ -36,6 +39,8 @@ class AccountService {
     const username = await this._decrypt(this._cache.username);
     const password = await this._decrypt(this._cache.password);
 
+    this._logger.debug("getting username", username);
+
     if (!isString(username) || !isString(password)) {
       return null;
     }
@@ -49,6 +54,8 @@ class AccountService {
    * @returns {Promise<void>}
    */
   async save(username, password) {
+    this._logger.debug("saving username", username);
+
     const name = this._name;
     const encryptedUsername = await this._encrypt(username);
     const encryptedPassword = await this._encrypt(password);
@@ -56,6 +63,8 @@ class AccountService {
       username: encryptedUsername,
       password: encryptedPassword,
     };
+
+    this._logger.debug("saving data", data);
 
     const exists = await this._db.find({ name });
 

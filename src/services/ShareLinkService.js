@@ -1,9 +1,11 @@
 import includes from "lodash/includes";
 import TappedOutShareLink from "models/TappedOutShareLink";
 import NeDB, { Collection } from "utils/NeDB";
+import Logger from "utils/Logger";
 
 class ShareLinkService {
   constructor() {
+    this._logger = Logger.getContextLogger("share-link-service");
     this._db = new NeDB(Collection.SHARE_LINKS);
   }
 
@@ -24,6 +26,7 @@ class ShareLinkService {
    * @returns {Promise<void>}
    */
   async remove(url) {
+    this._logger.debug("removing url", url);
     const commander = this.getCommanderId(url);
     await this._db.remove({ commander });
   }
@@ -41,6 +44,8 @@ class ShareLinkService {
    * @returns {string}
    */
   getCommanderId(url) {
+    this._logger.debug("getting commander id from url", url);
+
     const split = url.split("tappedout.net/mtg-decks/");
     const string = split[1].replace(/\//g, "");
 
@@ -57,6 +62,8 @@ class ShareLinkService {
    * @returns {Promise<TappedOutShareLink>}
    */
   async get(url) {
+    this._logger.debug("getting url", url);
+
     const commander = this.getCommanderId(url);
     const exists = await this._db.find({ commander });
 
@@ -72,6 +79,8 @@ class ShareLinkService {
    * @returns {Promise<void>}
    */
   async save(url) {
+    this._logger.debug("saving url", url);
+
     const commander = this.getCommanderId(url);
     const exists = await this._db.find({ commander });
 

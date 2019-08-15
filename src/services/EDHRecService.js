@@ -6,6 +6,7 @@ import CacheTimeout from "utils/CacheTimeout";
 import RateLimit from "utils/RateLimit";
 import NeDB, { Collection } from "utils/NeDB";
 import Spinners from "utils/Spinners";
+import Logger from "utils/Logger";
 
 const Selector = {
   CARD_ELEMENT: "div#cardlists div.nw",
@@ -16,6 +17,7 @@ const Selector = {
 class EDHRecService extends BasePage {
   constructor() {
     super();
+    this._logger = Logger.getContextLogger("edhrec-service");
     this._themes = new NeDB(Collection.THEMES);
     this._recommendations = new NeDB(Collection.RECOMMENDATIONS);
   }
@@ -25,6 +27,8 @@ class EDHRecService extends BasePage {
    * @returns {Promise<Array<{type: string, text: string, url: string}>>}
    */
   async getThemeList(commander) {
+    this._logger.debug("getting theme list for commander", commander);
+
     const timeout = new CacheTimeout({ days: 14 });
     const cached = await this._themes.find({ commander: commander.queryString });
 
@@ -50,6 +54,8 @@ class EDHRecService extends BasePage {
    * @returns {Promise<EDHRecRecommendation>}
    */
   async getRecommendation(theme) {
+    this._logger.debug("getting recommendation for commander with theme", theme);
+
     const timeout = new CacheTimeout({ days: 14 });
     const cached = await this._recommendations.find({ url: theme.url });
 
@@ -71,6 +77,8 @@ class EDHRecService extends BasePage {
    * @private
    */
   async _buildThemes(commander) {
+    this._logger.debug("building themes for commander", commander);
+
     await super._init();
 
     const themes = [];
@@ -94,6 +102,9 @@ class EDHRecService extends BasePage {
     });
 
     const elements = await super.findAll(themeSelector);
+
+    this._logger.debug("found # elements", elements.length);
+
     for (const element of elements) {
       const href = await super.getAttribute(element, "href");
 
@@ -122,6 +133,8 @@ class EDHRecService extends BasePage {
    * @private
    */
   async _buildRecommendation(theme) {
+    this._logger.debug("building recommendation for commander with theme", theme);
+
     await super._init();
 
     const cards = [];
@@ -138,6 +151,9 @@ class EDHRecService extends BasePage {
     });
 
     const elements = await super.findAll(Selector.CARD_ELEMENT);
+
+    this._logger.debug("found # elements", elements.length);
+
     for (const element of elements) {
       const nameElement = await element.$(Selector.CARD_NAME);
       const name = await super.getText(nameElement);

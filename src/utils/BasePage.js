@@ -1,7 +1,9 @@
+import Logger from "utils/Logger";
 import PuppeteerManager from "utils/PuppeteerManager";
 
 export default class BasePage {
   constructor() {
+    this._logger = Logger.getContextLogger("base-page");
     this._manager = new PuppeteerManager();
     this._initialized = false;
   }
@@ -22,6 +24,7 @@ export default class BasePage {
    * @returns {Promise<void>}
    */
   async goto(options) {
+    this._logger.debug("going to page with options", options);
     await this._manager.goto(options);
   }
 
@@ -49,6 +52,7 @@ export default class BasePage {
    * @returns {Promise<void>}
    */
   async click(selector) {
+    this._logger.debug(`clicking selector [ ${selector} ]`);
     await this._manager.page.click(selector);
   }
 
@@ -58,6 +62,7 @@ export default class BasePage {
    * @returns {Promise<void>}
    */
   async type(selector, text) {
+    this._logger.debug(`typing text [ ${text} ] to selector [ ${selector} ]`);
     await this._manager.page.type(selector, text);
   }
 
@@ -67,6 +72,7 @@ export default class BasePage {
    * @returns {Promise<void>}
    */
   async waitFor(selector, timeout = 30000) {
+    this._logger.debug(`waiting for selector [ ${selector} ]`);
     await this._manager.page.waitForSelector(selector, { timeout, visible: true });
   }
 

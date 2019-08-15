@@ -9,6 +9,7 @@ import CacheTimeout from "utils/CacheTimeout";
 import NeDB, { Collection } from "utils/NeDB";
 import RateLimit from "utils/RateLimit";
 import Spinners from "utils/Spinners";
+import Logger from "utils/Logger";
 
 const Selector = {
   USERNAME: "input#id_username",
@@ -32,6 +33,7 @@ const Selector = {
 class TappedOutService extends BasePage {
   constructor() {
     super();
+    this._logger = Logger.getContextLogger("tapped-out-service");
     this._hubsName = "hubs";
     this._loggedIn = false;
     this._commanders = new NeDB(Collection.COMMANDERS);
@@ -47,6 +49,8 @@ class TappedOutService extends BasePage {
    * @returns {Promise<Commander>}
    */
   async getCommander(url) {
+    this._logger.debug("getting commander from url", url);
+
     const timeout = new CacheTimeout({ years: 1 });
 
     const commander = ShareLinkService.getCommanderId(url);
@@ -73,6 +77,8 @@ class TappedOutService extends BasePage {
    * @returns {Promise<TappedOutLinkList>}
    */
   async getSimilarLinks({ commander, budget, top, hubs, cards }) {
+    this._logger.debug("getting similar links", { commander, budget, top, hubs, cards });
+
     const timeout = new CacheTimeout({ days: 14 });
 
     const query = {
@@ -108,6 +114,8 @@ class TappedOutService extends BasePage {
    * @returns {Promise<TappedOutLinkList>}
    */
   async getTopLinks() {
+    this._logger.debug("getting top links");
+
     const timeout = new CacheTimeout({ minutes: 21 });
     const cached = await this._links.find({ name: "top-links" });
 
@@ -129,6 +137,8 @@ class TappedOutService extends BasePage {
    * @returns {Promise<TappedOutDeck>}
    */
   async getDeck(url, cacheDeck = true) {
+    this._logger.debug("getting deck at url", url);
+
     const timeout = new CacheTimeout({ days: 7 });
     const cached = await this._decks.find({ url });
 
@@ -151,6 +161,8 @@ class TappedOutService extends BasePage {
    * @returns {Promise<Array<string>>}
    */
   async getValidHubs() {
+    this._logger.debug("getting valid hubs");
+
     const name = this._hubsName;
     const timeout = new CacheTimeout({ months: 3 });
     const cached = await this._hubs.find({ name });
@@ -177,6 +189,8 @@ class TappedOutService extends BasePage {
    * @returns {Promise<void>}
    */
   async login(account) {
+    this._logger.debug("logging in username", account.username);
+
     if (this._loggedIn) return;
 
     Spinners.next("logging in");
@@ -211,6 +225,8 @@ class TappedOutService extends BasePage {
    * @private
    */
   async _buildCommander({ commander, url }) {
+    this._logger.debug("building commander", { commander, url });
+
     await super._init();
 
     await RateLimit.tappedOut();
@@ -242,6 +258,8 @@ class TappedOutService extends BasePage {
    * @private
    */
   async _buildSimilarLinks({ commander, budget, top, hubs, cards }) {
+    this._logger.debug("building similar links", { commander, budget, top, hubs, cards });
+
     await super._init();
 
     const baseUrl = `${this._searchUrl}?q=&format=edh&general=${commander.queryString}&o=-rating&submit=Filter+results`;
@@ -293,6 +311,8 @@ class TappedOutService extends BasePage {
    * @private
    */
   async _buildTopLinks() {
+    this._logger.debug("building top links");
+
     await super._init();
 
     const baseUrl = `${this._searchUrl}?q=&format=edh&price_0=&price_1=&o=-rating&submit=Filter+results`;
@@ -333,6 +353,8 @@ class TappedOutService extends BasePage {
    * @private
    */
   async _getLinksOnPage(pageUrl, position) {
+    this._logger.debug("getting links on page", pageUrl);
+
     const links = [];
 
     try {
@@ -346,6 +368,8 @@ class TappedOutService extends BasePage {
       await this.waitFor(Selector.DECK_LINK, 5000);
       const elements = await this.findAll(Selector.DECK_LINK);
 
+      this._logger.debug("found # elements", elements.length);
+
       for (const element of elements) {
         const href = await super.getAttribute(element, "href");
         const url = `https://tappedout.net${href}?cat=type&sort=name`;
@@ -353,7 +377,7 @@ class TappedOutService extends BasePage {
         position += 1;
       }
     } catch (err) {
-      // do nothing
+      this._logger.error(err);
     }
 
     return { links, position };
@@ -364,6 +388,8 @@ class TappedOutService extends BasePage {
    * @private
    */
   async _buildHubs() {
+    this._logger.debug("building hubs");
+
     await super._init();
 
     await RateLimit.tappedOut();
@@ -374,6 +400,8 @@ class TappedOutService extends BasePage {
 
     const elements = await super.findAll(Selector.HUB);
     const list = [];
+
+    this._logger.debug("found # elements", elements.length);
 
     for (const element of elements) {
       const value = await super.getAttribute(element, "value");
@@ -389,6 +417,8 @@ class TappedOutService extends BasePage {
    * @private
    */
   async _buildDeck(url) {
+    this._logger.debug("building deck at url", url);
+
     await super._init();
 
     const cards = [];
@@ -405,6 +435,8 @@ class TappedOutService extends BasePage {
         const parents = await super.findAll(Selector.CARD_LIST, 5000);
         const mainBoard = parents[0];
         const cardItems = await mainBoard.$$(Selector.MEMBER);
+
+        this._logger.debug("found # card items", cardItems.length);
 
         for (const item of cardItems) {
           const card = await item.$(Selector.CARD);
@@ -433,6 +465,7 @@ class TappedOutService extends BasePage {
 
         return { url, cards };
       } catch (err) {
+        this._logger.error(err);
         await TappedOutService._removeShareLink(url);
         tries += 1;
       }

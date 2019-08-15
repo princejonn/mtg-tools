@@ -8,12 +8,14 @@ import isObject from "lodash/isObject";
 import isString from "lodash/isString";
 import InventoryService from "services/InventoryService";
 import ScryfallService from "services/ScryfallService";
+import Logger from "utils/Logger";
 
 export default class BaseDeck {
   /**
    * @param {object} [options]
    */
   constructor(options = {}) {
+    this._logger = Logger.getContextLogger("base-deck");
     this._cards = [];
     this._tappedOut = {
       added: 0,
@@ -69,6 +71,7 @@ export default class BaseDeck {
    * @returns {Promise<void>}
    */
   async addCommanderDeck(commanderDeck) {
+    this._logger.debug("adding commander deck");
     const { cards } = commanderDeck;
     await this._addCards({ cards, isCommander: true });
     this._tappedOut.added += 1;
@@ -80,7 +83,7 @@ export default class BaseDeck {
    */
   async addTappedOutDeck(tappedOutDeck) {
     if (!tappedOutDeck.cards || !tappedOutDeck.cards.length) return;
-
+    this._logger.debug("adding tappedOut deck");
     const { cards, position } = tappedOutDeck;
     await this._addCards({ cards, position });
     this._tappedOut.decks.push(tappedOutDeck);
@@ -92,6 +95,7 @@ export default class BaseDeck {
    * @returns {Promise<void>}
    */
   async addEDHRecommendation(recommendation) {
+    this._logger.debug("adding EDHREC recommendation");
     const { cards } = recommendation;
     await this._addCards({ cards });
   }
@@ -106,11 +110,10 @@ export default class BaseDeck {
    */
   async _calculatePercent() {
     if (this._calculated.percent) return;
-
+    this._logger.debug("calculating card percentages");
     for (const card of this._cards) {
       card.calculatePercent(this._tappedOut.added);
     }
-
     this._calculated.percent = true;
   }
 
@@ -120,9 +123,8 @@ export default class BaseDeck {
    */
   async _calculateCmc() {
     if (this._calculated.cmc) return;
-
+    this._logger.debug("calculating average card cmc");
     this._averageFromPathTotal("_cmc");
-
     this._calculated.cmc = true;
   }
 
@@ -132,9 +134,8 @@ export default class BaseDeck {
    */
   async _calculateColors() {
     if (this._calculated.colors) return;
-
+    this._logger.debug("calculating average card colors");
     this._averageFromPathTotal("_colors");
-
     this._calculated.colors = true;
   }
 
@@ -144,6 +145,8 @@ export default class BaseDeck {
    */
   async _calculateTypes() {
     if (this._calculated.types) return;
+
+    this._logger.debug("calculating average card types");
 
     this._averageFromPathTotal("_types");
 
