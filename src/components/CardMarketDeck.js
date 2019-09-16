@@ -1,5 +1,7 @@
+import cloneDeep from "lodash/cloneDeep";
 import filter from "lodash/filter";
 import find from "lodash/find";
+import arraySort, { SortBy } from "utils/ArraySort";
 import BaseDeck from "utils/BaseDeck";
 
 export default class CardMarketDeck extends BaseDeck {
@@ -26,10 +28,11 @@ export default class CardMarketDeck extends BaseDeck {
       card.calculateMissing();
     }
 
-    this.cardsToPurchase = cards;
+    this.cardsToPurchase = arraySort(cards, "inventory.missing", SortBy.DESCENDING);
   }
 
   async _setDecksToPurchase() {
+    const cardsToPurchase = cloneDeep(this.cardsToPurchase);
     this.decksToPurchase = [];
 
     for (const deck of this._tappedOut.decks) {
@@ -37,9 +40,10 @@ export default class CardMarketDeck extends BaseDeck {
       const cards = [];
 
       for (const card of deck.cards) {
-        const found = find(this.cardsToPurchase, { id: card.id });
+        const found = find(cardsToPurchase, item => (item.id === card.id && item.inventory.missing > 0));
         if (!found) continue;
         cards.push(found.simpleName);
+        found.inventory.missing -= 1;
       }
 
       this.decksToPurchase.push({ url, cards });
