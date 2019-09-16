@@ -12,6 +12,7 @@ import Spinners from "utils/Spinners";
 import Logger from "utils/Logger";
 
 const Selector = {
+  PAGE_LOADED: ".pull-left",
   USERNAME: "input#id_username",
   PASSWORD: "input#id_password",
   SUBMIT: "input.submit",
@@ -361,9 +362,9 @@ class TappedOutService extends BasePage {
       await RateLimit.tappedOut();
       await super.goto({
         url: pageUrl,
-        waitForSelector: Selector.SEARCH_FILTER_BUTTON,
+        waitForSelector: Selector.PAGE_LOADED,
       });
-
+      await super.waitFor(Selector.SEARCH_FILTER_BUTTON, 2500);
       await super.click(Selector.SEARCH_FILTER_BUTTON);
       await this.waitFor(Selector.DECK_LINK, 5000);
       const elements = await this.findAll(Selector.DECK_LINK);

@@ -19,6 +19,16 @@ export default class ReporterService {
 
     const file = path.join(cwd, `card-market-deck-list-${now}.txt`);
 
+    for (const deck of cardMarketDeck.decksToPurchase) {
+      fs.appendFileSync(file, `DECK: ${deck.url}\r\n\r\n`);
+      for (const card of deck.cards) {
+        fs.appendFileSync(file, `1x ${card}\r\n`)
+      }
+      fs.appendFileSync(file, "\r\n\r\n");
+    }
+
+    fs.appendFileSync(file, "ALL CARDS:\r\n\r\n");
+
     for (const card of cardMarketDeck.cardsToPurchase) {
       fs.appendFileSync(file, `${card.inventory.missing}x ${card.simpleName}\r\n`);
     }
