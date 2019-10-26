@@ -364,8 +364,7 @@ class TappedOutService extends BasePage {
         url: pageUrl,
         waitForSelector: Selector.PAGE_LOADED,
       });
-      await super.waitFor(Selector.SEARCH_FILTER_BUTTON, 2500);
-      await super.click(Selector.SEARCH_FILTER_BUTTON);
+      await super.waitFor(Selector.SEARCH_FILTER_BUTTON, 5000);
       await this.waitFor(Selector.DECK_LINK, 5000);
       const elements = await this.findAll(Selector.DECK_LINK);
 
@@ -374,6 +373,7 @@ class TappedOutService extends BasePage {
       for (const element of elements) {
         const href = await super.getAttribute(element, "href");
         const url = `https://tappedout.net${href}?cat=type&sort=name`;
+        this._logger.debug("found link", url);
         links.push({ position, url });
         position += 1;
       }

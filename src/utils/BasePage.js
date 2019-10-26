@@ -20,12 +20,13 @@ export default class BasePage {
   }
 
   /**
-   * @param options
+   * @param {string} url
+   * @param {string} [waitForSelector]
    * @returns {Promise<void>}
    */
-  async goto(options) {
-    this._logger.debug("going to page with options", options);
-    await this._manager.goto(options);
+  async goto({ url, waitForSelector }) {
+    this._logger.debug("going to page with options", { url, waitForSelector });
+    await this._manager.goto({ url, waitForSelector });
   }
 
   /**

@@ -11,7 +11,10 @@ export default class PuppeteerManager {
    * @returns {Promise<void>}
    */
   async init(headless = true) {
-    this.browser = await puppeteer.launch({ headless });
+    this.browser = await puppeteer.launch({
+      headless,
+      defaultViewport: null,
+    });
     this.page = await this.browser.newPage();
   }
 
@@ -21,6 +24,9 @@ export default class PuppeteerManager {
    * @returns {Promise<void>}
    */
   async goto({ url, waitForSelector }) {
+    await this.page.close();
+    this.page = await this.browser.newPage();
+    await this.page.bringToFront();
     await this.page.goto(url);
     if (!waitForSelector) return;
     await this.page.waitForSelector(waitForSelector, { visible: true });
