@@ -44,8 +44,8 @@ export default class ReporterService {
   static async buildDifferenceReport({ commander, improveDeck }) {
     const content = [];
 
-    content.push(HTMLService.getMostPopularCards(improveDeck, 100));
-    content.push(HTMLService.getLeastPopularCards(improveDeck, 100));
+    content.push(HTMLService.getMostPopularCards(improveDeck, 36));
+    content.push(HTMLService.getLeastPopularCards(improveDeck, 36));
 
     ReporterService._saveReport(commander, content, "difference");
   }
