@@ -9,9 +9,9 @@ import Spinners from "utils/Spinners";
 import Logger from "utils/Logger";
 
 const Selector = {
-  CARD_ELEMENT: "div#cardlists div.nw",
-  CARD_NAME: "div.nwname",
-  CARD_DESC: "div.nwdesc",
+  CARD_ELEMENT: "div.cards div.card__container",
+  CARD_NAME: "div.card__name",
+  CARD_LABEL: "div.card__label",
 };
 
 class EDHRecService extends BasePage {
@@ -83,7 +83,7 @@ class EDHRecService extends BasePage {
 
     const themes = [];
 
-    const themeSelector = `a[href^="${commander.queryString}-"]`;
+    const themeSelector = `a[href*="${commander.queryString}-"]`;
     const commanderUrl = `https://edhrec.com/commanders/${commander.queryString}`;
 
     await RateLimit.edhRec();
@@ -161,7 +161,7 @@ class EDHRecService extends BasePage {
       const card = await ScryfallCacheService.find(name);
       if (!card.id) continue;
 
-      const descElement = await element.$(Selector.CARD_DESC);
+      const descElement = await element.$(Selector.CARD_LABEL);
       const desc = await super.getText(descElement);
 
       const inPercentOfDecks = desc.match(regexDecksPercent)[0];
