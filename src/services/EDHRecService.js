@@ -114,7 +114,7 @@ class EDHRecService extends BasePage {
 
       const object = {
         text,
-        url: `https://edhrec.com/commanders/${href}`,
+        url: `https://edhrec.com${href}`,
       };
 
       const type = includes(href, "budget") ? "budget" : "theme";
